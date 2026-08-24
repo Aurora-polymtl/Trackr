@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using Trackr.Api.Data;
 using Trackr.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +9,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+
+builder.Services.AddDbContext<TrackrDbContext>(options =>
+{
+});
 
 var app = builder.Build();
 
