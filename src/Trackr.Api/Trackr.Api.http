@@ -1,6 +1,11 @@
-@Trackr.Api_HostAddress = http://localhost:5257
+@host = http://localhost:5257
 
-GET {{Trackr.Api_HostAddress}}/weatherforecast/
+GET {{host}}/api/projects
+Accept: application/json
+
+###
+
+GET {{host}}/openapi/v1.json
 Accept: application/json
 
 ###
