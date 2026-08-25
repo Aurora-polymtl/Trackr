@@ -12,6 +12,7 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 
 builder.Services.AddDbContext<TrackrDbContext>(options =>
 {
+    options.UseNpgsql(builder.Configuration.GetConnectionString("TrackrDatabase"));
 });
 
 var app = builder.Build();
