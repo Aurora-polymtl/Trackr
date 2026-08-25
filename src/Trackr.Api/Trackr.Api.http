@@ -9,3 +9,13 @@ GET {{host}}/openapi/v1.json
 Accept: application/json
 
 ###
+
+POST {{host}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "Trackr API",
+  "description": "Backend du projet Trackr"
+}
+
+###
