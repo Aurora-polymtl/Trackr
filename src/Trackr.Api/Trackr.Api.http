@@ -19,3 +19,33 @@ Content-Type: application/json
 }
 
 ###
+
+POST {{host}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "Trackr frontend",
+  "description": "Interface React du projet Trackr"
+}
+
+###
+
+POST {{host}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "",
+  "description": "Projet invalide"
+}
+
+###
+
+GET {{host}}/api/projects/1
+Accept: application/json
+
+###
+
+GET {{host}}/api/projects/99999
+Accept: application/json
+
+###

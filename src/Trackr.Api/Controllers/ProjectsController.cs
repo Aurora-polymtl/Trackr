@@ -23,11 +23,24 @@ public class ProjectsController : ControllerBase
         return Ok(projects);
     }
 
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetProjectById(int id)
+    {
+        var project = await _projectService.GetProjectByIdAsync(id);
+
+        if (project is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(project);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateProject(CreateProjectRequest request)
     {
         var project = await _projectService.CreateProjectAsync(request);
 
-        return Ok(project);
+        return CreatedAtAction(nameof(GetProjectById), new { id = project.Id }, project);
     }
 }
