@@ -15,9 +15,9 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult GetProjects()
+    public async Task<IActionResult> GetProjects()
     {
-        var projects = _projectService.GetProjects();
+        var projects = await _projectService.GetProjectsAsync();
 
         return Ok(projects);
     }

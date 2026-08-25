@@ -4,5 +4,5 @@ namespace Trackr.Api.Services;
 
 public interface IProjectService
 {
-    IEnumerable<Project> GetProjects();
+    Task<IEnumerable<Project>> GetProjectsAsync();
 }
