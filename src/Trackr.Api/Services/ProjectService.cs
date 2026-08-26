@@ -56,4 +56,19 @@ public class ProjectService: IProjectService
 
         return true;
     }
+
+    public async Task<bool> DeleteProjectAsync(int id)
+    {
+        var project = await _dbContext.Projects.FindAsync(id);
+
+        if (project is null)
+        {
+            return false;
+        }
+
+        _dbContext.Projects.Remove(project);
+        await _dbContext.SaveChangesAsync();
+
+        return true;
+    }
 }

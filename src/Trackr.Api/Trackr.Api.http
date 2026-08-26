@@ -10,6 +10,16 @@ Accept: application/json
 
 ###
 
+GET {{host}}/api/projects/1
+Accept: application/json
+
+###
+
+GET {{host}}/api/projects/99999
+Accept: application/json
+
+###
+
 POST {{host}}/api/projects
 Content-Type: application/json
 
@@ -40,16 +50,6 @@ Content-Type: application/json
 
 ###
 
-GET {{host}}/api/projects/1
-Accept: application/json
-
-###
-
-GET {{host}}/api/projects/99999
-Accept: application/json
-
-###
-
 PUT {{host}}/api/projects/1
 Content-Type: application/json
 
@@ -69,3 +69,9 @@ Content-Type: application/json
 }
 
 ###
+
+DELETE {{host}}/api/projects/1
+
+###
+
+
