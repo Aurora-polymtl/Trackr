@@ -49,3 +49,23 @@ GET {{host}}/api/projects/99999
 Accept: application/json
 
 ###
+
+PUT {{host}}/api/projects/1
+Content-Type: application/json
+
+{
+  "name": "Trackr Backend",
+  "description": "API ASP.NET Core pour le gestionnaire d'issues Trackr"
+}
+
+###
+
+PUT {{host}}/api/projects/99999
+Content-Type: application/json
+
+{
+  "name": "Test",
+  "description": "Test"
+}
+
+###

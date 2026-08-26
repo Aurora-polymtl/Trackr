@@ -43,4 +43,17 @@ public class ProjectsController : ControllerBase
 
         return CreatedAtAction(nameof(GetProjectById), new { id = project.Id }, project);
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateProject(int id, UpdateProjectRequest request)
+    {
+        var updated = await _projectService.UpdateProjectAsync(id, request);
+
+        if (!updated)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
 }

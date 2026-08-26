@@ -39,4 +39,21 @@ public class ProjectService: IProjectService
 
         return project;
     }
+
+    public async Task<bool> UpdateProjectAsync(int id, UpdateProjectRequest request)
+    {
+        var project = await _dbContext.Projects.FindAsync(id);
+
+        if (project is null)
+        {
+            return false;
+        }
+
+        project.Name = request.Name;
+        project.Description = request.Description;
+
+        await _dbContext.SaveChangesAsync();
+
+        return true;
+    }
 }
