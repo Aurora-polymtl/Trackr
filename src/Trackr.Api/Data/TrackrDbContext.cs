@@ -10,6 +10,7 @@ public class TrackrDbContext : DbContext
     }
 
     public DbSet<Project> Projects => Set<Project>();
+    public DbSet<Issue> Issues => Set<Issue>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
