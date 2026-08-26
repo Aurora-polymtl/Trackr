@@ -15,6 +15,13 @@ public class IssuesController : ControllerBase
         _issueService = issueService;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetIssues(int projectId)
+    {
+        var issues = await _issueService.GetIssuesByProjectAsync(projectId);
+        return Ok(issues);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateIssue(int projectId, CreateIssueRequest request)
     {

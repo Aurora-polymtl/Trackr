@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Trackr.Api.Data;
 using Trackr.Api.Dtos;
 using Trackr.Api.Models;
@@ -11,6 +12,21 @@ public class IssueService : IIssueService
     public IssueService(TrackrDbContext dbContext)
     {
         _dbContext = dbContext;
+    }
+
+    public async Task<IEnumerable<IssueResponse>> GetIssuesByProjectAsync(int projectId)
+    {
+        return await _dbContext.Issues
+            .Where(issue => issue.ProjectId == projectId)
+            .Select(issue => new IssueResponse
+            {
+                Id = issue.Id,
+                Title = issue.Title,
+                Description = issue.Description,
+                CreatedAt = issue.CreatedAt,
+                ProjectId = issue.ProjectId
+            })
+            .ToListAsync();
     }
 
     public async Task<Issue?> CreateIssueAsync(int projectId, CreateIssueRequest request)
