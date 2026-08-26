@@ -10,7 +10,7 @@ Accept: application/json
 
 ###
 
-GET {{host}}/api/projects/1
+GET {{host}}/api/projects/2
 Accept: application/json
 
 ###
@@ -50,7 +50,7 @@ Content-Type: application/json
 
 ###
 
-PUT {{host}}/api/projects/1
+PUT {{host}}/api/projects/3
 Content-Type: application/json
 
 {
@@ -71,6 +71,36 @@ Content-Type: application/json
 ###
 
 DELETE {{host}}/api/projects/1
+
+###
+
+POST {{host}}/api/projects/2/issues
+Content-Type: application/json
+
+{
+  "title": "Add authentication",
+  "description": "Implement user login and registration."
+}
+
+###
+
+POST {{host}}/api/projects/99999/issues
+Content-Type: application/json
+
+{
+  "title": "Invalid issue",
+  "description": "This project does not exist."
+}
+
+###
+
+POST {{host}}/api/projects/1/issues
+Content-Type: application/json
+
+{
+  "title": "",
+  "description": "Invalid issue"
+}
 
 ###
 
