@@ -129,4 +129,24 @@ Content-Type: application/json
 
 ###
 
+PUT {{host}}/api/projects/2/issues/1
+Content-Type: application/json
+
+{
+  "title": "Update authentication flow",
+  "description": "Improve the login and registration workflow."
+}
+
+###
+
+PUT {{host}}/api/projects/99999/issues/1
+Content-Type: application/json
+
+{
+  "title": "Invalid update",
+  "description": "This issue does not belong to this project."
+}
+
+###
+
 

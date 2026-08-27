@@ -66,4 +66,22 @@ public class IssueService : IIssueService
 
         return issue;
     }
+
+    public async Task<bool> UpdateIssueAsync(int projectId, int id, UpdateIssueRequest request)
+    {
+        var issue = await _dbContext.Issues
+            .FirstOrDefaultAsync(issue => issue.Id == id && issue.ProjectId == projectId);
+
+        if (issue is null)
+        {
+            return false;
+        }
+
+        issue.Title = request.Title;
+        issue.Description = request.Description;
+
+        await _dbContext.SaveChangesAsync();
+
+        return true;
+    }
 }

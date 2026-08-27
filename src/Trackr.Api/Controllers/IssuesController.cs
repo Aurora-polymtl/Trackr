@@ -62,4 +62,17 @@ public class IssuesController : ControllerBase
                 }, 
                 response);
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateIssue(int projectId, int id, UpdateIssueRequest request)
+    {
+        var updated = await _issueService.UpdateIssueAsync(projectId, id, request);
+
+        if (!updated)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
 }
