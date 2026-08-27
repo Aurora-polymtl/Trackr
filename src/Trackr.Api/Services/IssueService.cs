@@ -23,6 +23,7 @@ public class IssueService : IIssueService
                 Id = issue.Id,
                 Title = issue.Title,
                 Description = issue.Description,
+                Status = issue.Status,
                 CreatedAt = issue.CreatedAt,
                 ProjectId = issue.ProjectId
             })
@@ -38,6 +39,7 @@ public class IssueService : IIssueService
                 Id = issue.Id,
                 Title = issue.Title,
                 Description = issue.Description,
+                Status = issue.Status,
                 CreatedAt = issue.CreatedAt,
                 ProjectId = issue.ProjectId
             })
@@ -57,8 +59,9 @@ public class IssueService : IIssueService
         {
             Title = request.Title,
             Description = request.Description,
+            Status = IssueStatus.Backlog,
             CreatedAt = DateTime.UtcNow,
-            ProjectId = projectId
+            ProjectId = projectId,
         };
 
         _dbContext.Issues.Add(issue);

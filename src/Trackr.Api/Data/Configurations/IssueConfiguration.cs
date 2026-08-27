@@ -17,6 +17,11 @@ public class IssueConfiguration : IEntityTypeConfiguration<Issue>
         builder.Property(issue => issue.Description)
             .HasMaxLength(2000);
 
+        builder.Property(issue => issue.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
         builder.Property(issue => issue.CreatedAt)
             .IsRequired();
 

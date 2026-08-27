@@ -50,6 +50,7 @@ public class IssuesController : ControllerBase
             Id = issue.Id,
             Title = issue.Title,
             Description = issue.Description,
+            Status = issue.Status,
             CreatedAt = issue.CreatedAt,
             ProjectId = issue.ProjectId
         };
