@@ -22,6 +22,11 @@ public class IssueConfiguration : IEntityTypeConfiguration<Issue>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(issue => issue.Priority)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
         builder.Property(issue => issue.CreatedAt)
             .IsRequired();
 

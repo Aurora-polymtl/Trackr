@@ -129,6 +129,17 @@ Content-Type: application/json
 
 ###
 
+POST {{host}}/api/projects/2/issues
+Content-Type: application/json
+
+{
+  "title": "Add project dashboard",
+  "description": "Create the main dashboard for a project.",
+  "priority": "High"
+}
+
+###
+
 PUT {{host}}/api/projects/2/issues/1
 Content-Type: application/json
 

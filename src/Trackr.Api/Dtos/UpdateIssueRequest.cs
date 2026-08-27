@@ -13,4 +13,6 @@ public class UpdateIssueRequest
     public string Description { get; set; } = string.Empty;
 
     public IssueStatus Status { get; set; }
+
+    public IssuePriority Priority { get; set; }
 }
