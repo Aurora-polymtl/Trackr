@@ -79,7 +79,7 @@ Accept: application/json
 
 ###
 
-GET {{host}}/api/projects/2/issues/2
+GET {{host}}/api/projects/2/issues/1
 Accept: application/json
 
 ###
@@ -119,7 +119,7 @@ Content-Type: application/json
 
 ###
 
-POST {{host}}/api/projects/1/issues
+POST {{host}}/api/projects/2/issues
 Content-Type: application/json
 
 {
@@ -146,6 +146,10 @@ Content-Type: application/json
   "title": "Invalid update",
   "description": "This issue does not belong to this project."
 }
+
+###
+
+DELETE {{host}}/api/projects/2/issues/3
 
 ###
 

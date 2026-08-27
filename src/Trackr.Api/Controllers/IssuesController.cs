@@ -75,4 +75,17 @@ public class IssuesController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteIssue(int projectId, int id)
+    {
+        var deleted = await _issueService.DeleteIssueAsync(projectId, id);
+
+        if (!deleted)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
 }

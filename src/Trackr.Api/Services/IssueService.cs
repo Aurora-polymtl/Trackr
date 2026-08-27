@@ -84,4 +84,20 @@ public class IssueService : IIssueService
 
         return true;
     }
+
+    public async Task<bool> DeleteIssueAsync(int projectId, int id)
+    {
+        var issue = await _dbContext.Issues
+            .FirstOrDefaultAsync(issue => issue.Id == id && issue.ProjectId == projectId);
+
+        if (issue is null)
+        {
+            return false;
+        }
+
+        _dbContext.Issues.Remove(issue);
+        await _dbContext.SaveChangesAsync();
+
+        return true;
+    }
 }
