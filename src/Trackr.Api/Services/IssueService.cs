@@ -29,6 +29,21 @@ public class IssueService : IIssueService
             .ToListAsync();
     }
 
+    public async Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id)
+    {
+        return await _dbContext.Issues
+            .Where(issue => issue.Id == id && issue.ProjectId == projectId)
+            .Select(issue => new IssueResponse
+            {
+                Id = issue.Id,
+                Title = issue.Title,
+                Description = issue.Description,
+                CreatedAt = issue.CreatedAt,
+                ProjectId = issue.ProjectId
+            })
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<Issue?> CreateIssueAsync(int projectId, CreateIssueRequest request)
     {
         var project = await _dbContext.Projects.FindAsync(projectId);

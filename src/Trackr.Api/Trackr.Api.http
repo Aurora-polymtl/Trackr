@@ -79,12 +79,32 @@ Accept: application/json
 
 ###
 
+GET {{host}}/api/projects/2/issues/2
+Accept: application/json
+
+###
+
+GET {{host}}/api/projects/99999/issues/1
+Accept: application/json
+
+###
+
 POST {{host}}/api/projects/2/issues
 Content-Type: application/json
 
 {
   "title": "Add authentication",
   "description": "Implement user login and registration."
+}
+
+###
+
+POST {{host}}/api/projects/3/issues
+Content-Type: application/json
+
+{
+  "title": "Add issue details",
+  "description": "Create endpoint for retrieving an individual issue."
 }
 
 ###

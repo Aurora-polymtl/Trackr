@@ -6,5 +6,6 @@ namespace Trackr.Api.Services;
 public interface IIssueService
 {
     Task<IEnumerable<IssueResponse>> GetIssuesByProjectAsync(int projectId);
+    Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id);
     Task<Issue?> CreateIssueAsync(int projectId, CreateIssueRequest request);
 }

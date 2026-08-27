@@ -22,6 +22,19 @@ public class IssuesController : ControllerBase
         return Ok(issues);
     }
 
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetIssueById(int projectId, int id)
+    {
+        var issue = await _issueService.GetIssueByIdAsync(projectId, id);
+
+        if (issue is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(issue);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateIssue(int projectId, CreateIssueRequest request)
     {
@@ -41,6 +54,12 @@ public class IssuesController : ControllerBase
             ProjectId = issue.ProjectId
         };
 
-        return Ok(response);
+        return CreatedAtAction(
+            nameof(GetIssueById), 
+            new { 
+                    projectId = issue.ProjectId, 
+                    id = issue.Id 
+                }, 
+                response);
     }
 }
