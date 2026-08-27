@@ -82,6 +82,7 @@ public class IssueService : IIssueService
 
         issue.Title = request.Title;
         issue.Description = request.Description;
+        issue.Status = request.Status;
 
         await _dbContext.SaveChangesAsync();
 

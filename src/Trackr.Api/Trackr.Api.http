@@ -134,7 +134,8 @@ Content-Type: application/json
 
 {
   "title": "Update authentication flow",
-  "description": "Improve the login and registration workflow."
+  "description": "Improve the login and registration workflow.",
+  "status": "InProgress"
 }
 
 ###
@@ -145,6 +146,17 @@ Content-Type: application/json
 {
   "title": "Invalid update",
   "description": "This issue does not belong to this project."
+}
+
+###
+
+PUT {{host}}/api/projects/1/issues/1
+Content-Type: application/json
+
+{
+  "title": "Add authentication",
+  "description": "Implement login and registration.",
+  "status": "AlmostDone"
 }
 
 ###

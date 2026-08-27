@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Trackr.Api.Models;
 
 namespace Trackr.Api.Dtos;
 
@@ -10,4 +11,6 @@ public class UpdateIssueRequest
 
     [MaxLength(2000)]
     public string Description { get; set; } = string.Empty;
+
+    public IssueStatus Status { get; set; }
 }
