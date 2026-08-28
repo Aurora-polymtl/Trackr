@@ -30,6 +30,9 @@ public class IssueConfiguration : IEntityTypeConfiguration<Issue>
         builder.Property(issue => issue.CreatedAt)
             .IsRequired();
 
+        builder.Property(issue => issue.UpdatedAt)
+            .IsRequired();
+
         builder.HasOne(issue => issue.Project)
             .WithMany(project => project.Issues)
             .HasForeignKey(issue => issue.ProjectId)

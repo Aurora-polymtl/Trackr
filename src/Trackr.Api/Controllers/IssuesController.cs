@@ -53,6 +53,7 @@ public class IssuesController : ControllerBase
             Status = issue.Status,
             Priority = issue.Priority,
             CreatedAt = issue.CreatedAt,
+            UpdatedAt = issue.UpdatedAt,
             ProjectId = issue.ProjectId
         };
 

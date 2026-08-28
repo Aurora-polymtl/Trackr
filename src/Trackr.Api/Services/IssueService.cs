@@ -26,6 +26,7 @@ public class IssueService : IIssueService
                 Status = issue.Status,
                 Priority = issue.Priority,
                 CreatedAt = issue.CreatedAt,
+                UpdatedAt = issue.UpdatedAt,
                 ProjectId = issue.ProjectId
             })
             .ToListAsync();
@@ -43,6 +44,7 @@ public class IssueService : IIssueService
                 Status = issue.Status,
                 Priority = issue.Priority,
                 CreatedAt = issue.CreatedAt,
+                UpdatedAt = issue.UpdatedAt,
                 ProjectId = issue.ProjectId
             })
             .FirstOrDefaultAsync();
@@ -57,13 +59,16 @@ public class IssueService : IIssueService
             return null;
         }
 
+        var now = DateTime.UtcNow;
+
         var issue = new Issue
         {
             Title = request.Title,
             Description = request.Description,
             Status = IssueStatus.Backlog,
             Priority = request.Priority,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = now,
+            UpdatedAt = now,
             ProjectId = projectId,
         };
 
@@ -87,6 +92,7 @@ public class IssueService : IIssueService
         issue.Description = request.Description;
         issue.Status = request.Status;
         issue.Priority = request.Priority;
+        issue.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
 

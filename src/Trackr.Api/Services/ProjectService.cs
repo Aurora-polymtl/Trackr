@@ -26,11 +26,14 @@ public class ProjectService: IProjectService
 
     public async Task<Project> CreateProjectAsync(CreateProjectRequest request)
     {
+        var now = DateTime.UtcNow;
+        
         var project = new Project
         {
             Name = request.Name,
             Description = request.Description,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now,
+            UpdatedAt = now
         };
 
         _dbContext.Projects.Add(project);
@@ -51,6 +54,7 @@ public class ProjectService: IProjectService
 
         project.Name = request.Name;
         project.Description = request.Description;
+        project.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
 

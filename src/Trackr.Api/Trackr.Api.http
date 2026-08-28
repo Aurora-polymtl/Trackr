@@ -140,6 +140,17 @@ Content-Type: application/json
 
 ###
 
+POST {{host}}/api/projects/2/issues
+Content-Type: application/json
+
+{
+  "title": "Test timestamps",
+  "description": "Verify creation and update dates.",
+  "priority": "Medium"
+}
+
+###
+
 PUT {{host}}/api/projects/2/issues/1
 Content-Type: application/json
 
@@ -168,6 +179,18 @@ Content-Type: application/json
   "title": "Add authentication",
   "description": "Implement login and registration.",
   "status": "AlmostDone"
+}
+
+###
+
+PUT {{host}}/api/projects/2/issues/6
+Content-Type: application/json
+
+{
+  "title": "Test updated timestamp",
+  "description": "Verify that UpdatedAt changes.",
+  "status": "InProgress",
+  "priority": "High"
 }
 
 ###

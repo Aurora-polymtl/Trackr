@@ -19,5 +19,8 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
 
         builder.Property(project => project.CreatedAt)
             .IsRequired();
+
+        builder.Property(project => project.UpdatedAt)
+            .IsRequired();
     }
 }
