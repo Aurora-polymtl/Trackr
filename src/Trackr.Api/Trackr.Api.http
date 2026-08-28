@@ -99,6 +99,21 @@ Accept: application/json
 
 ###
 
+GET {{host}}/api/projects/2/issues?priority=High
+Accept: application/json
+
+###
+
+GET {{host}}/api/projects/2/issues?status=InProgress&priority=High
+Accept: application/json
+
+###
+
+GET {{host}}/api/projects/1/issues?status=AlmostDone
+Accept: application/json
+
+###
+
 POST {{host}}/api/projects/2/issues
 Content-Type: application/json
 

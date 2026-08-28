@@ -14,22 +14,39 @@ public class IssueService : IIssueService
         _dbContext = dbContext;
     }
 
-    public async Task<IEnumerable<IssueResponse>> GetIssuesByProjectAsync(int projectId)
+    public async Task<IEnumerable<IssueResponse>> GetIssuesByProjectAsync(
+        int projectId,
+        IssueStatus? status,
+        IssuePriority? priority
+        )
     {
-        return await _dbContext.Issues
+        var query = _dbContext.Issues
             .Where(issue => issue.ProjectId == projectId)
-            .Select(issue => new IssueResponse
-            {
-                Id = issue.Id,
-                Title = issue.Title,
-                Description = issue.Description,
-                Status = issue.Status,
-                Priority = issue.Priority,
-                CreatedAt = issue.CreatedAt,
-                UpdatedAt = issue.UpdatedAt,
-                ProjectId = issue.ProjectId
-            })
-            .ToListAsync();
+            .AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(issue => issue.Status == status.Value);
+        }
+
+        if (priority.HasValue)
+        {
+            query = query.Where(issue => issue.Priority == priority.Value);
+        }
+
+        return await query
+        .Select(issue => new IssueResponse
+        {
+            Id = issue.Id,
+            Title = issue.Title,
+            Description = issue.Description,
+            Status = issue.Status,
+            Priority = issue.Priority,
+            CreatedAt = issue.CreatedAt,
+            UpdatedAt = issue.UpdatedAt,
+            ProjectId = issue.ProjectId
+        })
+        .ToListAsync();
     }
 
     public async Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id)

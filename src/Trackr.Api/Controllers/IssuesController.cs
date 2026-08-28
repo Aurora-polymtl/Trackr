@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Trackr.Api.Dtos;
 using Trackr.Api.Services;
+using Trackr.Api.Models;
 
 namespace Trackr.Api.Controllers;
 
@@ -16,9 +17,18 @@ public class IssuesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetIssues(int projectId)
+    public async Task<IActionResult> GetIssues(
+        int projectId,
+        [FromQuery] IssueStatus? status,
+        [FromQuery] IssuePriority? priority
+        )
     {
-        var issues = await _issueService.GetIssuesByProjectAsync(projectId);
+        var issues = await _issueService.GetIssuesByProjectAsync(
+            projectId,
+            status,
+            priority
+        );
+        
         return Ok(issues);
     }
 
