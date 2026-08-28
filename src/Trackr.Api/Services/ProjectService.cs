@@ -14,17 +14,36 @@ public class ProjectService: IProjectService
         _dbContext = dbContext;
     }
 
-    public async Task<IEnumerable<Project>> GetProjectsAsync()
+    public async Task<IEnumerable<ProjectResponse>> GetProjectsAsync()
     {
-        return await _dbContext.Projects.ToListAsync();
+        return await _dbContext.Projects
+            .Select(project => new ProjectResponse
+            {
+                Id = project.Id,
+                Name = project.Name,
+                Description = project.Description,
+                CreatedAt = project.CreatedAt,
+                UpdatedAt = project.UpdatedAt
+            })
+            .ToListAsync();
     }
 
-    public async Task<Project?> GetProjectByIdAsync(int id)
+    public async Task<ProjectResponse?> GetProjectByIdAsync(int id)
     {
-        return await _dbContext.Projects.FindAsync(id);
+        return await _dbContext.Projects
+            .Where(project => project.Id == id)
+            .Select(project => new ProjectResponse
+            {
+                Id = project.Id,
+                Name = project.Name,
+                Description = project.Description,
+                CreatedAt = project.CreatedAt,
+                UpdatedAt = project.UpdatedAt
+            })
+            .FirstOrDefaultAsync();
     }
 
-    public async Task<Project> CreateProjectAsync(CreateProjectRequest request)
+    public async Task<ProjectResponse> CreateProjectAsync(CreateProjectRequest request)
     {
         var now = DateTime.UtcNow;
         
@@ -40,7 +59,14 @@ public class ProjectService: IProjectService
 
         await _dbContext.SaveChangesAsync();
 
-        return project;
+        return new ProjectResponse
+        {
+            Id = project.Id,
+            Name = project.Name,
+            Description = project.Description,
+            CreatedAt = project.CreatedAt,
+            UpdatedAt = project.UpdatedAt
+        };
     }
 
     public async Task<bool> UpdateProjectAsync(int id, UpdateProjectRequest request)

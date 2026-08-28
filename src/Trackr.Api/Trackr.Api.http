@@ -50,6 +50,16 @@ Content-Type: application/json
 
 ###
 
+POST {{host}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "Portfolio",
+  "description": "Portfolio project"
+}
+
+###
+
 PUT {{host}}/api/projects/3
 Content-Type: application/json
 

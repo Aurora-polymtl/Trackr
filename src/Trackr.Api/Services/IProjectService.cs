@@ -5,11 +5,11 @@ namespace Trackr.Api.Services;
 
 public interface IProjectService
 {
-    Task<IEnumerable<Project>> GetProjectsAsync();
+    Task<IEnumerable<ProjectResponse>> GetProjectsAsync();
 
-    Task<Project?> GetProjectByIdAsync(int id);
+    Task<ProjectResponse?> GetProjectByIdAsync(int id);
 
-    Task<Project> CreateProjectAsync(CreateProjectRequest request);
+    Task<ProjectResponse> CreateProjectAsync(CreateProjectRequest request);
 
     Task<bool> UpdateProjectAsync(int id, UpdateProjectRequest request);
 
