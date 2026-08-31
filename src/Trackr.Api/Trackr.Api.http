@@ -109,7 +109,17 @@ Accept: application/json
 
 ###
 
-GET {{host}}/api/projects/1/issues?status=AlmostDone
+GET {{host}}/api/projects/2/issues?status=AlmostDone
+Accept: application/json
+
+###
+
+GET {{host}}/api/projects/2/issues?search=auth
+Accept: application/json
+
+###
+
+GET {{host}}/api/projects/2/issues?sortBy=priority
 Accept: application/json
 
 ###

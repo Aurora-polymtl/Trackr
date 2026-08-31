@@ -20,13 +20,17 @@ public class IssuesController : ControllerBase
     public async Task<IActionResult> GetIssues(
         int projectId,
         [FromQuery] IssueStatus? status,
-        [FromQuery] IssuePriority? priority
+        [FromQuery] IssuePriority? priority,
+        [FromQuery] string? search,
+        [FromQuery] string? sortBy
         )
     {
         var issues = await _issueService.GetIssuesByProjectAsync(
             projectId,
             status,
-            priority
+            priority,
+            search,
+            sortBy
         );
         
         return Ok(issues);

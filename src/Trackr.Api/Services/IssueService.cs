@@ -17,7 +17,9 @@ public class IssueService : IIssueService
     public async Task<IEnumerable<IssueResponse>> GetIssuesByProjectAsync(
         int projectId,
         IssueStatus? status,
-        IssuePriority? priority
+        IssuePriority? priority,
+        string? search,
+        string? sortBy
         )
     {
         var query = _dbContext.Issues
@@ -33,6 +35,22 @@ public class IssueService : IIssueService
         {
             query = query.Where(issue => issue.Priority == priority.Value);
         }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(issue => 
+                issue.Title.Contains(search) || 
+                issue.Description.Contains(search));
+        }
+
+        query = sortBy?.ToLower() switch
+        {
+            "createdat" => query.OrderByDescending(issue => issue.CreatedAt),
+            "updatedat" => query.OrderByDescending(issue => issue.UpdatedAt),
+            "priority" => query.OrderByDescending(issue => issue.Priority),
+            "status" => query.OrderBy(issue => issue.Status),
+            _ => query.OrderByDescending(issue => issue.CreatedAt)
+        };
 
         return await query
         .Select(issue => new IssueResponse
