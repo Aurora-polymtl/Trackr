@@ -124,6 +124,21 @@ Accept: application/json
 
 ###
 
+GET {{host}}/api/projects/2/issues?page=1&pageSize=2
+Accept: application/json
+
+###
+
+GET {{host}}/api/projects/2/issues?page=2&pageSize=2
+Accept: application/json
+
+###
+
+GET {{host}}/api/projects/2/issues?page=0
+Accept: application/json
+
+###
+
 POST {{host}}/api/projects/2/issues
 Content-Type: application/json
 

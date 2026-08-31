@@ -49,6 +49,10 @@ public class IssueService : IIssueService
             _ => query.OrderByDescending(issue => issue.CreatedAt)
         };
 
+        query = query
+            .Skip((queryParameters.Page - 1) * queryParameters.PageSize)
+            .Take(queryParameters.PageSize);
+
         return await query
         .Select(issue => new IssueResponse
         {
