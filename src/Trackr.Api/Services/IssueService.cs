@@ -16,34 +16,31 @@ public class IssueService : IIssueService
 
     public async Task<IEnumerable<IssueResponse>> GetIssuesByProjectAsync(
         int projectId,
-        IssueStatus? status,
-        IssuePriority? priority,
-        string? search,
-        string? sortBy
+        IssueQueryParameters queryParameters
         )
     {
         var query = _dbContext.Issues
             .Where(issue => issue.ProjectId == projectId)
             .AsQueryable();
 
-        if (status.HasValue)
+        if (queryParameters.Status.HasValue)
         {
-            query = query.Where(issue => issue.Status == status.Value);
+            query = query.Where(issue => issue.Status == queryParameters.Status.Value);
         }
 
-        if (priority.HasValue)
+        if (queryParameters.Priority.HasValue)
         {
-            query = query.Where(issue => issue.Priority == priority.Value);
+            query = query.Where(issue => issue.Priority == queryParameters.Priority.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(search))
+        if (!string.IsNullOrWhiteSpace(queryParameters.Search))
         {
             query = query.Where(issue => 
-                issue.Title.Contains(search) || 
-                issue.Description.Contains(search));
+                issue.Title.Contains(queryParameters.Search) || 
+                issue.Description.Contains(queryParameters.Search));
         }
 
-        query = sortBy?.ToLower() switch
+        query = queryParameters.SortBy?.ToLower() switch
         {
             "createdat" => query.OrderByDescending(issue => issue.CreatedAt),
             "updatedat" => query.OrderByDescending(issue => issue.UpdatedAt),

@@ -7,10 +7,7 @@ public interface IIssueService
 {
     Task<IEnumerable<IssueResponse>> GetIssuesByProjectAsync(
         int projectId, 
-        IssueStatus? status, 
-        IssuePriority? priority,
-        string? search,
-        string? sortBy
+        IssueQueryParameters queryParameters
         );
     Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id);
     Task<Issue?> CreateIssueAsync(int projectId, CreateIssueRequest request);
