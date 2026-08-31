@@ -26,7 +26,7 @@ public class IssuesController : ControllerBase
             projectId,
             queryParameters
         );
-        
+
         return Ok(response);
     }
 
@@ -66,11 +66,12 @@ public class IssuesController : ControllerBase
         };
 
         return CreatedAtAction(
-            nameof(GetIssueById), 
-            new { 
-                    projectId = issue.ProjectId, 
-                    id = issue.Id 
-                }, 
+            nameof(GetIssueById),
+            new
+            {
+                projectId = issue.ProjectId,
+                id = issue.Id
+            },
                 response);
     }
 

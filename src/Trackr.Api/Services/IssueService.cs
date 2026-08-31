@@ -43,13 +43,34 @@ public class IssueService : IIssueService
         var totalCount = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalCount / (double)queryParameters.PageSize);
 
-        query = queryParameters.SortBy?.ToLower() switch
+        query = queryParameters.SortBy switch
         {
-            "createdat" => query.OrderByDescending(issue => issue.CreatedAt),
-            "updatedat" => query.OrderByDescending(issue => issue.UpdatedAt),
-            "priority" => query.OrderByDescending(issue => issue.Priority),
-            "status" => query.OrderBy(issue => issue.Status),
-            _ => query.OrderByDescending(issue => issue.CreatedAt)
+            IssueSortBy.UpdatedAt =>
+                queryParameters.SortDirection == SortDirection.Asc
+                    ? query.OrderBy(issue => issue.UpdatedAt)
+                    : query.OrderByDescending(issue => issue.UpdatedAt),
+            IssueSortBy.Priority =>
+                queryParameters.SortDirection == SortDirection.Asc
+                    ? query.OrderBy(issue => 
+                        issue.Priority == IssuePriority.Low ? 0 :
+                        issue.Priority == IssuePriority.Medium ? 1 : 
+                        issue.Priority == IssuePriority.High ? 2 : 
+                        issue.Priority == IssuePriority.Critical ? 3 :
+                        4)
+                    : query.OrderByDescending(issue => 
+                        issue.Priority == IssuePriority.Low ? 0 :
+                        issue.Priority == IssuePriority.Medium ? 1 : 
+                        issue.Priority == IssuePriority.High ? 2 : 
+                        issue.Priority == IssuePriority.Critical ? 3 :
+                        4),
+            IssueSortBy.Status =>
+                queryParameters.SortDirection == SortDirection.Asc
+                    ? query.OrderBy(issue => issue.Status)
+                    : query.OrderByDescending(issue => issue.Status),
+            _ =>
+                queryParameters.SortDirection == SortDirection.Asc
+                    ? query.OrderBy(issue => issue.CreatedAt)
+                    : query.OrderByDescending(issue => issue.CreatedAt)
         };
 
         var items = await query

@@ -139,6 +139,16 @@ Accept: application/json
 
 ###
 
+GET {{host}}/api/projects/2/issues?sortBy=Priority&sortDirection=Desc
+Accept: application/json
+
+###
+
+GET {{host}}/api/projects/2/issues?sortBy=Priority&sortDirection=Asc
+Accept: application/json
+
+###
+
 POST {{host}}/api/projects/2/issues
 Content-Type: application/json
 
