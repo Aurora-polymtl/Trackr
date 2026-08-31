@@ -22,12 +22,12 @@ public class IssuesController : ControllerBase
         [FromQuery] IssueQueryParameters queryParameters
         )
     {
-        var issues = await _issueService.GetIssuesByProjectAsync(
+        var response = await _issueService.GetIssuesByProjectAsync(
             projectId,
             queryParameters
         );
         
-        return Ok(issues);
+        return Ok(response);
     }
 
     [HttpGet("{id}")]

@@ -14,7 +14,7 @@ public class IssueService : IIssueService
         _dbContext = dbContext;
     }
 
-    public async Task<IEnumerable<IssueResponse>> GetIssuesByProjectAsync(
+    public async Task<PagedResponse<IssueResponse>> GetIssuesByProjectAsync(
         int projectId,
         IssueQueryParameters queryParameters
         )
@@ -40,6 +40,9 @@ public class IssueService : IIssueService
                 issue.Description.Contains(queryParameters.Search));
         }
 
+        var totalCount = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalCount / (double)queryParameters.PageSize);
+
         query = queryParameters.SortBy?.ToLower() switch
         {
             "createdat" => query.OrderByDescending(issue => issue.CreatedAt),
@@ -49,23 +52,30 @@ public class IssueService : IIssueService
             _ => query.OrderByDescending(issue => issue.CreatedAt)
         };
 
-        query = query
+        var items = await query
             .Skip((queryParameters.Page - 1) * queryParameters.PageSize)
-            .Take(queryParameters.PageSize);
+            .Take(queryParameters.PageSize)
+            .Select(issue => new IssueResponse
+            {
+                Id = issue.Id,
+                Title = issue.Title,
+                Description = issue.Description,
+                Status = issue.Status,
+                Priority = issue.Priority,
+                CreatedAt = issue.CreatedAt,
+                UpdatedAt = issue.UpdatedAt,
+                ProjectId = issue.ProjectId
+            })
+            .ToListAsync();
 
-        return await query
-        .Select(issue => new IssueResponse
+        return new PagedResponse<IssueResponse>
         {
-            Id = issue.Id,
-            Title = issue.Title,
-            Description = issue.Description,
-            Status = issue.Status,
-            Priority = issue.Priority,
-            CreatedAt = issue.CreatedAt,
-            UpdatedAt = issue.UpdatedAt,
-            ProjectId = issue.ProjectId
-        })
-        .ToListAsync();
+            Items = items,
+            Page = queryParameters.Page,
+            PageSize = queryParameters.PageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages
+        };
     }
 
     public async Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id)
