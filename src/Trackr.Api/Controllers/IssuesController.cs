@@ -27,6 +27,11 @@ public class IssuesController : ControllerBase
             queryParameters
         );
 
+        if (response is null)
+        {
+            return NotFound();
+        }
+
         return Ok(response);
     }
 

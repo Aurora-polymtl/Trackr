@@ -14,11 +14,18 @@ public class IssueService : IIssueService
         _dbContext = dbContext;
     }
 
-    public async Task<PagedResponse<IssueResponse>> GetIssuesByProjectAsync(
+    public async Task<PagedResponse<IssueResponse>?> GetIssuesByProjectAsync(
         int projectId,
         IssueQueryParameters queryParameters
         )
     {
+        var projectExists = await _dbContext.Projects.AnyAsync(project => project.Id == projectId);
+
+        if (!projectExists)
+        {
+            return null;
+        }
+        
         var query = _dbContext.Issues
             .Where(issue => issue.ProjectId == projectId)
             .AsQueryable();

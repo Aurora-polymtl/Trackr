@@ -94,7 +94,7 @@ Accept: application/json
 
 ###
 
-GET {{host}}/api/projects/99999/issues/1
+GET {{host}}/api/projects/99999/issues
 Accept: application/json
 
 ###

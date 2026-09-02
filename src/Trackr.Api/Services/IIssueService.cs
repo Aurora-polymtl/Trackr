@@ -5,7 +5,7 @@ namespace Trackr.Api.Services;
 
 public interface IIssueService
 {
-    Task<PagedResponse<IssueResponse>> GetIssuesByProjectAsync(
+    Task<PagedResponse<IssueResponse>?> GetIssuesByProjectAsync(
         int projectId, 
         IssueQueryParameters queryParameters
         );
