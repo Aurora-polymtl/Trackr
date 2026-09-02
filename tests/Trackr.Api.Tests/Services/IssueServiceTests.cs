@@ -226,6 +226,229 @@ public class IssueServiceTests
         );
     }
 
+    [Fact]
+    public async Task CreateIssueAsync_CreatesIssueWithExpectedDefaults()
+    {
+        await using var dbContext = CreateDbContext();
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test Project",
+            Description = "Project for testing",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+        var service = new IssueService(dbContext);
+        var request = new CreateIssueRequest
+        {
+            Title = "New Issue",
+            Description = "Issue created from test",
+            Priority = IssuePriority.High
+        };
+        var beforeCreation = DateTime.UtcNow;
+        var result = await service.CreateIssueAsync(1, request);
+        var afterCreation = DateTime.UtcNow;
+        
+        Assert.NotNull(result);
+        Assert.Equal("New Issue", result.Title);
+        Assert.Equal("Issue created from test", result.Description);
+        Assert.Equal(IssueStatus.Backlog, result.Status);
+        Assert.Equal(IssuePriority.High, result.Priority);
+        Assert.Equal(1, result.ProjectId);
+        Assert.InRange(result.CreatedAt, beforeCreation, afterCreation);
+        Assert.InRange(result.UpdatedAt, beforeCreation, afterCreation);
+
+        var savedIssue = await dbContext.Issues.SingleAsync();
+        Assert.Equal(result.Id, savedIssue.Id);
+        Assert.Equal("New Issue", savedIssue.Title);
+    }
+
+    [Fact]
+    public async Task CreateIssueAsync_ReturnsNull_WhenProjectDoesNotExist()
+    {
+        await using var dbContext = CreateDbContext();
+        var service = new IssueService(dbContext);
+        var request = new CreateIssueRequest
+        {
+            Title = "New Issue",
+            Description = "Test issue",
+            Priority = IssuePriority.Medium
+        };
+        var result = await service.CreateIssueAsync(999, request);
+        Assert.Null(result);
+        Assert.Empty(dbContext.Issues);
+    }
+
+    [Fact]
+    public async Task UpdateIssueAsync_UpdatesIssue()
+    {
+        await using var dbContext = CreateDbContext();
+        var createdAt = DateTime.UtcNow.AddHours(-1);
+        var issue = new Issue
+        {
+            Id = 1,
+            Title = "Old Title",
+            Description = "Old Description",
+            Status = IssueStatus.Backlog,
+            Priority = IssuePriority.Low,
+            ProjectId = 1,
+            CreatedAt = createdAt,
+            UpdatedAt = createdAt
+        };
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test Project",
+            Description = "Project for testing",
+            CreatedAt = createdAt,
+            UpdatedAt = createdAt
+        });
+        dbContext.Issues.Add(issue);
+        await dbContext.SaveChangesAsync();
+        var service = new IssueService(dbContext);
+        var request = new UpdateIssueRequest
+        {
+            Title = "Updated Title",
+            Description = "Updated Description",
+            Status = IssueStatus.InProgress,
+            Priority = IssuePriority.High
+        };
+        var beforeUpdate = DateTime.UtcNow;
+        var result = await service.UpdateIssueAsync(1, 1, request);
+        var afterUpdate = DateTime.UtcNow;
+        Assert.True(result);
+        var updatedIssue = await dbContext.Issues.SingleAsync(issue => issue.Id == 1);
+        Assert.Equal("Updated Title", updatedIssue.Title);
+        Assert.Equal("Updated Description", updatedIssue.Description);
+        Assert.Equal(IssueStatus.InProgress, updatedIssue.Status);
+        Assert.Equal(IssuePriority.High, updatedIssue.Priority);
+        Assert.Equal(createdAt, updatedIssue.CreatedAt);
+        Assert.InRange(updatedIssue.UpdatedAt, beforeUpdate, afterUpdate);
+    }
+
+    [Fact]
+    public async Task UpdateIssueAsync_ReturnsFalse_WhenIssueBelongsToDifferentProject()
+    {
+        await using var dbContext = CreateDbContext();
+        var now = DateTime.UtcNow;
+        dbContext.Projects.AddRange(
+            new Project
+            {
+                Id = 1,
+                Name = "Project 1",
+                Description = "",
+                CreatedAt = now,
+                UpdatedAt = now
+            },
+            new Project
+            {
+                Id = 2,
+                Name = "Project 2",
+                Description = "",
+                CreatedAt = now,
+                UpdatedAt = now
+            }
+        );
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Original Title",
+            Description = "",
+            Status = IssueStatus.Backlog,
+            Priority = IssuePriority.Medium,
+            ProjectId = 1,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+        await dbContext.SaveChangesAsync();
+        var service = new IssueService(dbContext);
+        var request = new UpdateIssueRequest
+        {
+            Title = "Should Not Update",
+            Description = "",
+            Status = IssueStatus.Done,
+            Priority = IssuePriority.Critical
+        };
+        var result = await service.UpdateIssueAsync(2, 1, request);
+        Assert.False(result);
+        var issue = await dbContext.Issues.SingleAsync();
+        Assert.Equal("Original Title", issue.Title);
+        Assert.Equal(IssueStatus.Backlog, issue.Status);
+    }
+
+    [Fact]
+    public async Task DeleteIssueAsync_DeletesIssue()
+    {
+        await using var dbContext = CreateDbContext();
+        var now = DateTime.UtcNow;
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test Project",
+            Description = "",
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Issue to Delete",
+            Description = "",
+            Status = IssueStatus.Backlog,
+            Priority = IssuePriority.Medium,
+            ProjectId = 1,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+        await dbContext.SaveChangesAsync();
+        var service = new IssueService(dbContext);
+        var result = await service.DeleteIssueAsync(1, 1);
+        Assert.True(result);
+        Assert.Empty(dbContext.Issues);
+    }
+
+    [Fact]
+    public async Task DeleteIssueAsync_ReturnsFalse_WhenIssueBelongsToDifferentProject()
+    {
+        await using var dbContext = CreateDbContext();
+        var now = DateTime.UtcNow;
+        dbContext.Projects.AddRange(
+            new Project
+            {
+                Id = 1,
+                Name = "Project 1",
+                Description = "",
+                CreatedAt = now,
+                UpdatedAt = now
+            },
+            new Project
+            {
+                Id = 2,
+                Name = "Project 2",
+                Description = "",
+                CreatedAt = now,
+                UpdatedAt = now
+            }
+        );
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Protected issue",
+            Description = "",
+            Status = IssueStatus.Backlog,
+            Priority = IssuePriority.Medium,
+            ProjectId = 1,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+        await dbContext.SaveChangesAsync();
+        var service = new IssueService(dbContext);
+        var result = await service.DeleteIssueAsync(2, 1);
+        Assert.False(result);
+        Assert.Single(dbContext.Issues);
+    }
+
     private static async Task SeedIssuesAsync(TrackrDbContext dbContext)
     {
         var now = DateTime.UtcNow;
