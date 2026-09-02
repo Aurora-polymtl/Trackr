@@ -41,6 +41,8 @@ The API currently supports:
 * ASP.NET Core
 * Entity Framework Core
 * LINQ
+```markdown
+- xUnit
 
 ### Database
 
@@ -148,6 +150,15 @@ dotnet watch
 
 The local API address is displayed in the terminal when the application starts.
 
+## Testing
+
+The backend includes automated tests built with xUnit and Entity Framework Core's InMemory provider.
+
+Run the test suite from the repository root:
+
+```bash
+dotnet test
+
 ## Project Structure
 
 ```text
@@ -173,7 +184,7 @@ Planned improvements include:
 * React frontend
 * Additional issue management features
 * Improved API error handling
-* Automated testing
+* Expand automated test coverage
 * Authentication and user management
 * Deployment
 
