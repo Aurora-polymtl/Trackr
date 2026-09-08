@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Trackr.Api.Models;
 
 namespace Trackr.Api.Data;
 
-public class TrackrDbContext : DbContext
+public class TrackrDbContext : IdentityDbContext<ApplicationUser>
 {
     public TrackrDbContext(DbContextOptions<TrackrDbContext> options) : base(options)
     {

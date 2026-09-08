@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using System.Text.Json.Serialization;
+using Trackr.Api.Models;
 using Trackr.Api.Exceptions;
 using Trackr.Api.Data;
 using Trackr.Api.Services;
@@ -24,6 +26,10 @@ builder.Services.AddDbContext<TrackrDbContext>(options =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("TrackrDatabase"));
 });
+builder.Services.AddIdentityCore<ApplicationUser>(options =>
+{
+    options.User.RequireUniqueEmail = true;
+}).AddEntityFrameworkStores<TrackrDbContext>();
 
 var app = builder.Build();
 
