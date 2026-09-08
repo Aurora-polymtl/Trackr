@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc;
 using Trackr.Api.Data;
 using Trackr.Api.Dtos;
 using Trackr.Api.Models;
@@ -12,12 +13,24 @@ namespace Trackr.Api.Tests.Integration;
 public class IssuesControllerTests
 {
     [Fact]
-    public async Task GetIssues_ReturnsNotFound_WhenProjectDoesNotExist()
+    public async Task GetIssues_ReturnsProblemDetails_WhenProjectDoesNotExist()
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
+
         var response = await client.GetAsync("/api/projects/999/issues");
+
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+
+        Assert.NotNull(problem);
+
+        Assert.Equal(404, problem.Status);
+        Assert.Equal("Project not found", problem.Title);
+        Assert.Equal("Project with id 999 was not found.", problem.Detail);
     }
 
     [Fact]
@@ -26,7 +39,9 @@ public class IssuesControllerTests
         await using var factory = new TrackrApiFactory();
         await SeedProjectAsync(factory);
         var client = factory.CreateClient();
+
         var response = await client.GetAsync("/api/projects/1/issues");
+
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -36,9 +51,11 @@ public class IssuesControllerTests
         await using var factory = new TrackrApiFactory();
         await SeedProjectAsync(factory);
         var client = factory.CreateClient();
+
         var response = await client.GetAsync("/api/projects/1/issues");
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<PagedResponse<IssueResponse>>();
+
         Assert.NotNull(result);
         Assert.Empty(result.Items);
         Assert.Equal(0, result.TotalCount);
@@ -57,9 +74,13 @@ public class IssuesControllerTests
             Description = "Created through HTTP request",
             Priority = IssuePriority.High
         };
+
         var response = await client.PostAsJsonAsync("/api/projects/1/issues", request);
+
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
         var createdIssue = await response.Content.ReadFromJsonAsync<IssueResponse>(JsonOptions);
+
         Assert.NotNull(createdIssue);
         Assert.Equal("Integration test issue", createdIssue.Title);
         Assert.Equal(IssueStatus.Backlog, createdIssue.Status);
@@ -80,7 +101,9 @@ public class IssuesControllerTests
             description = "Missing title",
             priority = "High"
         };
+
         var response = await client.PostAsJsonAsync("/api/projects/1/issues", request);
+
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -96,14 +119,41 @@ public class IssuesControllerTests
             description = "Test",
             priority = "InvalidPriority"
         };
+
         var response = await client.PostAsJsonAsync("/api/projects/1/issues", request);
+
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateIssue_ReturnsProblemDetails_WhenProjectDoesNotExist()
+    {
+        await using var factory = new TrackrApiFactory();
+        var client = factory.CreateClient();
+        var request = new CreateIssueRequest
+        {
+            Title = "Test issue",
+            Description = "Test",
+            Priority = IssuePriority.High
+        };
+
+        var response = await client.PostAsJsonAsync("/api/projects/999/issues", request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+
+        Assert.NotNull(problem);
+
+        Assert.Equal(404, problem.Status);
+        Assert.Equal("Project not found", problem.Title);
     }
 
     private static async Task SeedProjectAsync(TrackrApiFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TrackrDbContext>();
+
         dbContext.Projects.Add(new Project
         {
             Id = 1,
@@ -112,6 +162,7 @@ public class IssuesControllerTests
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         });
+
         await dbContext.SaveChangesAsync();
     }
 

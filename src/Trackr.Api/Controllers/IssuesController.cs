@@ -29,7 +29,10 @@ public class IssuesController : ControllerBase
 
         if (response is null)
         {
-            return NotFound();
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Project not found",
+                detail: $"Project with id {projectId} was not found.");
         }
 
         return Ok(response);
@@ -55,7 +58,10 @@ public class IssuesController : ControllerBase
 
         if (issue is null)
         {
-            return NotFound();
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Project not found",
+                detail: $"Project with id {projectId} was not found.");
         }
 
         var response = new IssueResponse
