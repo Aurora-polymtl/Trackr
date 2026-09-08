@@ -30,7 +30,10 @@ public class ProjectsController : ControllerBase
 
         if (project is null)
         {
-            return NotFound();
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Project not found",
+                detail: $"Project with id {id} was not found.");
         }
 
         return Ok(project);
@@ -51,7 +54,10 @@ public class ProjectsController : ControllerBase
 
         if (!updated)
         {
-            return NotFound();
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Project not found",
+                detail: $"Project with id {id} was not found.");
         }
 
         return NoContent();
@@ -64,7 +70,10 @@ public class ProjectsController : ControllerBase
 
         if (!deleted)
         {
-            return NotFound();
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Project not found",
+                detail: $"Project with id {id} was not found.");
         }
 
         return NoContent();
