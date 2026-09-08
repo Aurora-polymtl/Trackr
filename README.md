@@ -152,9 +152,11 @@ The local API address is displayed in the terminal when the application starts.
 
 ## Testing
 
-The backend includes automated tests built with xUnit and Entity Framework Core's InMemory provider.
+The backend includes automated unit and integration tests using xUnit.
 
-Run the test suite from the repository root:
+Service tests use Entity Framework Core's InMemory provider to validate business logic, while HTTP integration tests exercise the ASP.NET Core request pipeline.
+
+Run all tests from the repository root:
 
 ```bash
 dotnet test
