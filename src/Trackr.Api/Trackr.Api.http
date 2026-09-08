@@ -259,4 +259,22 @@ DELETE {{host}}/api/projects/2/issues/3
 
 ###
 
+### Register user
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@trackr.com",
+  "password": "Trackr123!"
+}
+
+### Register with invalid email
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "not-an-email",
+  "password": "Trackr123!"
+}
+
 
