@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using Trackr.Api.Exceptions;
 using Trackr.Api.Data;
 using Trackr.Api.Services;
 
@@ -12,6 +13,7 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddOpenApi();
 
@@ -24,6 +26,8 @@ builder.Services.AddDbContext<TrackrDbContext>(options =>
 });
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

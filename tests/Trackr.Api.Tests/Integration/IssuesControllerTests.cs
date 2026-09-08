@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Trackr.Api.Services;
 using Trackr.Api.Data;
 using Trackr.Api.Dtos;
 using Trackr.Api.Models;
@@ -60,6 +62,38 @@ public class IssuesControllerTests
         Assert.Empty(result.Items);
         Assert.Equal(0, result.TotalCount);
         Assert.Equal(0, result.TotalPages);
+    }
+
+    [Fact]
+    public async Task GetIssues_ReturnsProblemDetails_WhenUnexpectedExceptionOccurs()
+    {
+        await using var factory = new TrackrApiFactory
+        {
+            ConfigureTestServices = services =>
+            {
+                services.RemoveAll<IIssueService>();
+                services.AddScoped<IIssueService, ThrowingIssueService>();
+            }
+        };
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/projects/1/issues");
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+
+        Assert.NotNull(problem);
+
+        Assert.Equal(500, problem.Status);
+        Assert.Equal("An unexpected error occurred.", problem.Title);
+        Assert.Equal("An unexpected error occurred while processing the request.", problem.Detail);
+
+        var content = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("Simulated test exception.", content);
+        Assert.Equal(
+            "application/problem+json",
+            response.Content.Headers.ContentType?.MediaType);
     }
 
     [Fact]

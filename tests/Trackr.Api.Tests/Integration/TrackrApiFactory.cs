@@ -10,6 +10,8 @@ namespace Trackr.Api.Tests.Integration;
 
 public class TrackrApiFactory : WebApplicationFactory<Program>
 {
+    public Action<IServiceCollection>? ConfigureTestServices { get; init; }
+    
     private readonly string _databaseName =
         $"TrackrIntegrationTests-{Guid.NewGuid()}";
 
@@ -29,6 +31,8 @@ public class TrackrApiFactory : WebApplicationFactory<Program>
             {
                 options.UseInMemoryDatabase(_databaseName);
             });
+            
+            ConfigureTestServices?.Invoke(services);
         });
     }
 }
