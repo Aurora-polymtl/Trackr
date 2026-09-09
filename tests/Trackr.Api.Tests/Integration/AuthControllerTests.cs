@@ -152,6 +152,7 @@ public class AuthControllerTests
         Assert.NotNull(result);
         Assert.NotEmpty(result.UserId);
         Assert.Equal("test@trackr.com", result.Email);
+        Assert.NotEmpty(result.AccessToken);
     }
 
     [Fact]

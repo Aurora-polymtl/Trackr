@@ -11,12 +11,24 @@ namespace Trackr.Api.Tests.Integration;
 public class TrackrApiFactory : WebApplicationFactory<Program>
 {
     public Action<IServiceCollection>? ConfigureTestServices { get; init; }
-    
+
     private readonly string _databaseName =
         $"TrackrIntegrationTests-{Guid.NewGuid()}";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseSetting(
+            "Jwt:Key",
+            "Trackr-Test-Key-For-Integration-Tests-123456789");
+
+        builder.UseSetting(
+            "Jwt:Issuer",
+            "Trackr.Api.Tests");
+
+        builder.UseSetting(
+            "Jwt:Audience",
+            "Trackr.Tests");
+
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<
@@ -31,7 +43,7 @@ public class TrackrApiFactory : WebApplicationFactory<Program>
             {
                 options.UseInMemoryDatabase(_databaseName);
             });
-            
+
             ConfigureTestServices?.Invoke(services);
         });
     }

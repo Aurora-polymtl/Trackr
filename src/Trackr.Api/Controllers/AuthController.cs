@@ -2,13 +2,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Trackr.Api.Dtos;
 using Trackr.Api.Models;
+using Trackr.Api.Services;
 
 namespace Trackr.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
 public class AuthController(
-    UserManager<ApplicationUser> userManager
+    UserManager<ApplicationUser> userManager,
+    ITokenService tokenService
 ) : ControllerBase
 {
     [HttpPost("register")]
@@ -75,10 +77,13 @@ public class AuthController(
             );
         }
 
+        var token = tokenService.CreateToken(user);
+
         var response = new LoginResponse
         {
             UserId = user.Id,
-            Email = user.Email!
+            Email = user.Email!,
+            AccessToken = token
         };
 
         return Ok(response);
