@@ -277,4 +277,31 @@ Content-Type: application/json
   "password": "Trackr123!"
 }
 
+### Login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@trackr.com",
+  "password": "Trackr123!"
+}
+
+### Login with wrong password
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@trackr.com",
+  "password": "WrongPassword123!"
+}
+
+### Login with unknown email
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "unknown@trackr.com",
+  "password": "Trackr123!"
+}
+
 

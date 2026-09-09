@@ -49,4 +49,38 @@ public class AuthController(
 
         return StatusCode(StatusCodes.Status201Created, response);
     }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(LoginRequest request)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email);
+
+        if (user is null)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Invalid credentials",
+                detail: "The email or password is incorrect."
+            );
+        }
+
+        var passwordIsValid = await userManager.CheckPasswordAsync(user, request.Password);
+
+        if (!passwordIsValid)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Invalid credentials",
+                detail: "The email or password is incorrect."
+            );
+        }
+
+        var response = new LoginResponse
+        {
+            UserId = user.Id,
+            Email = user.Email!
+        };
+
+        return Ok(response);
+    }
 }

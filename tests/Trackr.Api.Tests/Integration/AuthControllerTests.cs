@@ -122,4 +122,134 @@ public class AuthControllerTests
             HttpStatusCode.BadRequest,
             secondResponse.StatusCode);
     }
+
+    [Fact]
+    public async Task Login_ReturnsOk_WhenCredentialsAreValid()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        await RegisterUserAsync(client);
+
+        var request = new LoginRequest
+        {
+            Email = "test@trackr.com",
+            Password = "Trackr123!"
+        };
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            request);
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+        
+        var result = await response.Content
+            .ReadFromJsonAsync<LoginResponse>(JsonOptions);
+
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.UserId);
+        Assert.Equal("test@trackr.com", result.Email);
+    }
+
+    [Fact]
+    public async Task Login_ReturnsUnauthorized_WhenPasswordIsInvalid()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        await RegisterUserAsync(client);
+
+        var request = new LoginRequest
+        {
+            Email = "test@trackr.com",
+            Password = "WrongPassword123!"
+        };
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            request);
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode);
+
+        var problem = await response.Content
+            .ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+        
+        Assert.NotNull(problem);
+        Assert.Equal(
+            "Invalid credentials",
+            problem.Title);
+        Assert.Equal(
+            "The email or password is incorrect.",
+            problem.Detail);
+    }
+
+    [Fact]
+    public async Task Login_ReturnsUnauthorized_WhenUserDoesNotExist()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        var request = new LoginRequest
+        {
+            Email = "unknown@trackr.com",
+            Password = "Trackr123!"
+        };
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            request);
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_ReturnsBadRequest_WhenEmailIsInvalid()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        var request = new LoginRequest
+        {
+            Email = "invalid-email",
+            Password = "Trackr123!"
+        };
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            request);
+
+        Assert.Equal(
+            HttpStatusCode.BadRequest,
+            response.StatusCode);
+    }
+
+    private static async Task RegisterUserAsync(
+        HttpClient client, 
+        string email = "test@trackr.com",
+        string password = "Trackr123!")
+    {
+        var request = new RegisterRequest
+        {
+            Email = email,
+            Password = password
+        };
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/register",
+            request);
+        
+        Assert.Equal(
+            HttpStatusCode.Created,
+            response.StatusCode);
+    }
 }
