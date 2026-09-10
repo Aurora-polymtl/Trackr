@@ -9,6 +9,7 @@ namespace Trackr.Api.Tests.Services;
 public class IssueServiceTests
 {
     private const string TestUserId = "test-user-id";
+    private const string OtherUserId = "other-user-id";
 
     private TrackrDbContext CreateDbContext()
     {
@@ -277,9 +278,10 @@ public class IssueServiceTests
             Priority = IssuePriority.High
         };
         var beforeCreation = DateTime.UtcNow;
-        var result = await service.CreateIssueAsync(1, request, TestUserId);
+        var (op, result) = await service.CreateIssueAsync(1, request, TestUserId);
         var afterCreation = DateTime.UtcNow;
 
+        Assert.Equal(IssueOperationResult.Success, op);
         Assert.NotNull(result);
         Assert.Equal("New Issue", result.Title);
         Assert.Equal("Issue created from test", result.Description);
@@ -311,8 +313,168 @@ public class IssueServiceTests
             Description = "Test issue",
             Priority = IssuePriority.Medium
         };
-        var result = await service.CreateIssueAsync(999, request, TestUserId);
+        var (op, result) = await service.CreateIssueAsync(999, request, TestUserId);
+
+        Assert.Equal(IssueOperationResult.ProjectNotFound, op);
         Assert.Null(result);
+        Assert.Empty(dbContext.Issues);
+    }
+
+    [Fact]
+    public async Task CreateIssueAsync_CreatesIssueWithoutAssignee()
+    {
+        await using var dbContext = CreateDbContext();
+
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
+
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test project",
+            Description = "Project for testing",
+            UserId = TestUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+
+        var request = new CreateIssueRequest
+        {
+            Title = "Unassigned issue",
+            Description = "Test issue",
+            Priority = IssuePriority.Medium,
+            AssigneeId = null
+        };
+
+        var (result, issue) = await service.CreateIssueAsync(
+            1,
+            request,
+            TestUserId);
+
+        Assert.Equal(IssueOperationResult.Success, result);
+
+        Assert.NotNull(issue);
+        Assert.Null(issue.AssigneeId);
+
+        var savedIssue = await dbContext.Issues.SingleAsync();
+
+        Assert.Null(savedIssue.AssigneeId);
+    }
+
+    [Fact]
+    public async Task CreateIssueAsync_AssignsIssueToCurrentUser()
+    {
+        await using var dbContext = CreateDbContext();
+
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
+
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test project",
+            Description = "Project for testing",
+            UserId = TestUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+
+        var request = new CreateIssueRequest
+        {
+            Title = "Assigned issue",
+            Description = "Assigned to current user",
+            Priority = IssuePriority.High,
+            AssigneeId = TestUserId
+        };
+
+        var (result, issue) = await service.CreateIssueAsync(
+            1,
+            request,
+            TestUserId);
+
+        Assert.Equal(IssueOperationResult.Success, result);
+
+        Assert.NotNull(issue);
+        Assert.Equal(TestUserId, issue.AssigneeId);
+
+        var savedIssue = await dbContext.Issues.SingleAsync();
+
+        Assert.Equal(TestUserId, savedIssue.AssigneeId);
+    }
+
+    [Fact]
+    public async Task CreateIssueAsync_ReturnsInvalidAssignee_WhenAssigneeIsAnotherUser()
+    {
+        await using var dbContext = CreateDbContext();
+
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.AddRange(
+            new ApplicationUser
+            {
+                Id = TestUserId,
+                UserName = "test@trackr.com",
+                Email = "test@trackr.com"
+            },
+            new ApplicationUser
+            {
+                Id = OtherUserId,
+                UserName = "other@trackr.com",
+                Email = "other@trackr.com"
+            });
+
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test project",
+            Description = "Project for testing",
+            UserId = TestUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+
+        var request = new CreateIssueRequest
+        {
+            Title = "Invalid assignment",
+            Description = "Should not be created",
+            Priority = IssuePriority.High,
+            AssigneeId = OtherUserId
+        };
+
+        var (result, issue) = await service.CreateIssueAsync(
+            1,
+            request,
+            TestUserId);
+
+        Assert.Equal(
+            IssueOperationResult.InvalidAssignee,
+            result);
+
+        Assert.Null(issue);
         Assert.Empty(dbContext.Issues);
     }
 
@@ -360,7 +522,7 @@ public class IssueServiceTests
         var beforeUpdate = DateTime.UtcNow;
         var result = await service.UpdateIssueAsync(1, 1, request, TestUserId);
         var afterUpdate = DateTime.UtcNow;
-        Assert.True(result);
+        Assert.Equal(IssueOperationResult.Success, result);
         var updatedIssue = await dbContext.Issues.SingleAsync(issue => issue.Id == 1);
         Assert.Equal("Updated Title", updatedIssue.Title);
         Assert.Equal("Updated Description", updatedIssue.Description);
@@ -422,10 +584,151 @@ public class IssueServiceTests
             Priority = IssuePriority.Critical
         };
         var result = await service.UpdateIssueAsync(2, 1, request, TestUserId);
-        Assert.False(result);
+        Assert.Equal(IssueOperationResult.IssueNotFound, result);
         var issue = await dbContext.Issues.SingleAsync();
         Assert.Equal("Original Title", issue.Title);
         Assert.Equal(IssueStatus.Backlog, issue.Status);
+    }
+
+    [Fact]
+    public async Task UpdateIssueAsync_AssignsIssueToCurrentUser()
+    {
+        await using var dbContext = CreateDbContext();
+
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
+
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test project",
+            Description = "",
+            UserId = TestUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Original issue",
+            Description = "",
+            Status = IssueStatus.Backlog,
+            Priority = IssuePriority.Medium,
+            ProjectId = 1,
+            AssigneeId = null,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+
+        var request = new UpdateIssueRequest
+        {
+            Title = "Updated issue",
+            Description = "",
+            Status = IssueStatus.InProgress,
+            Priority = IssuePriority.High,
+            AssigneeId = TestUserId
+        };
+
+        var result = await service.UpdateIssueAsync(
+            1,
+            1,
+            request,
+            TestUserId);
+
+        Assert.Equal(
+            IssueOperationResult.Success,
+            result);
+
+        var updatedIssue = await dbContext.Issues
+            .SingleAsync();
+
+        Assert.Equal(TestUserId, updatedIssue.AssigneeId);
+    }
+
+    [Fact]
+    public async Task UpdateIssueAsync_ReturnsInvalidAssignee_WhenAssigneeIsAnotherUser()
+    {
+        await using var dbContext = CreateDbContext();
+
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.AddRange(
+            new ApplicationUser
+            {
+                Id = TestUserId,
+                UserName = "test@trackr.com",
+                Email = "test@trackr.com"
+            },
+            new ApplicationUser
+            {
+                Id = OtherUserId,
+                UserName = "other@trackr.com",
+                Email = "other@trackr.com"
+            });
+
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test project",
+            Description = "",
+            UserId = TestUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Original issue",
+            Description = "",
+            Status = IssueStatus.Backlog,
+            Priority = IssuePriority.Medium,
+            ProjectId = 1,
+            AssigneeId = null,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+
+        var request = new UpdateIssueRequest
+        {
+            Title = "Should not change",
+            Description = "",
+            Status = IssueStatus.Done,
+            Priority = IssuePriority.Critical,
+            AssigneeId = OtherUserId
+        };
+
+        var result = await service.UpdateIssueAsync(
+            1,
+            1,
+            request,
+            TestUserId);
+
+        Assert.Equal(
+            IssueOperationResult.InvalidAssignee,
+            result);
+
+        var issue = await dbContext.Issues.SingleAsync();
+
+        Assert.Null(issue.AssigneeId);
+        Assert.Equal("Original issue", issue.Title);
+        Assert.Equal(IssueStatus.Backlog, issue.Status);
+        Assert.Equal(IssuePriority.Medium, issue.Priority);
     }
 
     [Fact]

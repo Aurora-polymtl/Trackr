@@ -61,14 +61,22 @@ public class IssuesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateIssue(int projectId, CreateIssueRequest request)
     {
-        var issue = await _issueService.CreateIssueAsync(projectId, request, CurrentUserId);
+        var (result, issue) = await _issueService.CreateIssueAsync(projectId, request, CurrentUserId);
 
-        if (issue is null)
+        if (result == IssueOperationResult.ProjectNotFound)
         {
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
                 title: "Project not found",
                 detail: $"Project with id {projectId} was not found.");
+        }
+
+        if (result == IssueOperationResult.InvalidAssignee)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid assignee",
+                detail: "The issue can only be assigned to the current user.");
         }
 
         var response = new IssueResponse
@@ -80,7 +88,8 @@ public class IssuesController : ControllerBase
             Priority = issue.Priority,
             CreatedAt = issue.CreatedAt,
             UpdatedAt = issue.UpdatedAt,
-            ProjectId = issue.ProjectId
+            ProjectId = issue.ProjectId,
+            AssigneeId = issue.AssigneeId
         };
 
         return CreatedAtAction(
@@ -98,7 +107,7 @@ public class IssuesController : ControllerBase
     {
         var updated = await _issueService.UpdateIssueAsync(projectId, id, request, CurrentUserId);
 
-        if (!updated)
+        if (updated != IssueOperationResult.Success)
         {
             return NotFound();
         }

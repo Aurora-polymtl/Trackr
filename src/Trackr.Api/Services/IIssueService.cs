@@ -11,7 +11,7 @@ public interface IIssueService
         string userId
         );
     Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id, string userId);
-    Task<Issue?> CreateIssueAsync(int projectId, CreateIssueRequest request, string userId);
-    Task<bool> UpdateIssueAsync(int projectId, int id, UpdateIssueRequest request, string userId);
+    Task<(IssueOperationResult Result, Issue? Issue)> CreateIssueAsync(int projectId, CreateIssueRequest request, string userId);
+    Task<IssueOperationResult> UpdateIssueAsync(int projectId, int id, UpdateIssueRequest request, string userId);
     Task<bool> DeleteIssueAsync(int projectId, int id, string userId);
 }

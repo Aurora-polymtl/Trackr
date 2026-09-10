@@ -13,4 +13,6 @@ public class CreateIssueRequest
     public string Description { get; set; } = string.Empty;
 
     public IssuePriority Priority { get; set; } = IssuePriority.Medium;
+
+    public string? AssigneeId { get; set; }
 }

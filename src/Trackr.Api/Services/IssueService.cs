@@ -95,7 +95,8 @@ public class IssueService : IIssueService
                 Priority = issue.Priority,
                 CreatedAt = issue.CreatedAt,
                 UpdatedAt = issue.UpdatedAt,
-                ProjectId = issue.ProjectId
+                ProjectId = issue.ProjectId,
+                AssigneeId = issue.AssigneeId
             })
             .ToListAsync();
 
@@ -125,12 +126,13 @@ public class IssueService : IIssueService
                 Priority = issue.Priority,
                 CreatedAt = issue.CreatedAt,
                 UpdatedAt = issue.UpdatedAt,
-                ProjectId = issue.ProjectId
+                ProjectId = issue.ProjectId,
+                AssigneeId = issue.AssigneeId
             })
             .FirstOrDefaultAsync();
     }
 
-    public async Task<Issue?> CreateIssueAsync(int projectId, CreateIssueRequest request, string userId)
+    public async Task<(IssueOperationResult Result, Issue? Issue)> CreateIssueAsync(int projectId, CreateIssueRequest request, string userId)
     {
         var projectExists = await _dbContext.Projects
             .AnyAsync(project =>
@@ -139,7 +141,12 @@ public class IssueService : IIssueService
 
         if (!projectExists)
         {
-            return null;
+            return (IssueOperationResult.ProjectNotFound, null);
+        }
+
+        if (request.AssigneeId is not null && request.AssigneeId != userId)
+        {
+            return (IssueOperationResult.InvalidAssignee, null);
         }
 
         var now = DateTime.UtcNow;
@@ -153,25 +160,31 @@ public class IssueService : IIssueService
             CreatedAt = now,
             UpdatedAt = now,
             ProjectId = projectId,
+            AssigneeId = request.AssigneeId
         };
 
         _dbContext.Issues.Add(issue);
         await _dbContext.SaveChangesAsync();
 
-        return issue;
+        return (IssueOperationResult.Success, issue);
     }
 
-    public async Task<bool> UpdateIssueAsync(int projectId, int id, UpdateIssueRequest request, string userId)
+    public async Task<IssueOperationResult> UpdateIssueAsync(int projectId, int id, UpdateIssueRequest request, string userId)
     {
         var issue = await _dbContext.Issues
-            .FirstOrDefaultAsync(issue => 
-                issue.Id == id && 
+            .FirstOrDefaultAsync(issue =>
+                issue.Id == id &&
                 issue.ProjectId == projectId &&
                 issue.Project.UserId == userId);
 
         if (issue is null)
         {
-            return false;
+            return IssueOperationResult.IssueNotFound;
+        }
+
+        if (request.AssigneeId is not null && request.AssigneeId != userId)
+        {
+            return IssueOperationResult.InvalidAssignee;
         }
 
         issue.Title = request.Title;
@@ -179,17 +192,18 @@ public class IssueService : IIssueService
         issue.Status = request.Status;
         issue.Priority = request.Priority;
         issue.UpdatedAt = DateTime.UtcNow;
+        issue.AssigneeId = request.AssigneeId;
 
         await _dbContext.SaveChangesAsync();
 
-        return true;
+        return IssueOperationResult.Success;
     }
 
     public async Task<bool> DeleteIssueAsync(int projectId, int id, string userId)
     {
         var issue = await _dbContext.Issues
-            .FirstOrDefaultAsync(issue => 
-                issue.Id == id && 
+            .FirstOrDefaultAsync(issue =>
+                issue.Id == id &&
                 issue.ProjectId == projectId &&
                 issue.Project.UserId == userId);
 

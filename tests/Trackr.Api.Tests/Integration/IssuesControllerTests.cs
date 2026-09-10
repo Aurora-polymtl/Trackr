@@ -24,7 +24,7 @@ public class IssuesControllerTests
         var response = await client.GetAsync("/api/projects/999/issues");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        
+
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
 
         var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(JsonOptions);
@@ -138,7 +138,7 @@ public class IssuesControllerTests
         var userId = await AuthenticationHelper.AuthenticateAsync(client);
         await SeedProjectAsync(factory, userId);
 
-        var request = new 
+        var request = new
         {
             description = "Missing title",
             priority = "High"
@@ -157,7 +157,7 @@ public class IssuesControllerTests
         var userId = await AuthenticationHelper.AuthenticateAsync(client);
         await SeedProjectAsync(factory, userId);
 
-        var request = new 
+        var request = new
         {
             title = "Invalid priority issue",
             description = "Test",
@@ -175,7 +175,7 @@ public class IssuesControllerTests
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
         var userId = await AuthenticationHelper.AuthenticateAsync(client);
-        
+
         var request = new CreateIssueRequest
         {
             Title = "Test issue",
@@ -193,6 +193,99 @@ public class IssuesControllerTests
 
         Assert.Equal(404, problem.Status);
         Assert.Equal("Project not found", problem.Title);
+    }
+
+    [Fact]
+    public async Task CreateIssue_ReturnsBadRequest_WhenAssigneeIsAnotherUser()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId =
+            await AuthenticationHelper.AuthenticateAsync(
+                ownerClient,
+                "owner@trackr.com");
+
+        await SeedProjectAsync(
+            factory,
+            ownerId);
+
+        var otherClient = factory.CreateClient();
+
+        var otherUserId =
+            await AuthenticationHelper.AuthenticateAsync(
+                otherClient,
+                "other@trackr.com");
+
+        var request = new CreateIssueRequest
+        {
+            Title = "Invalid assignment",
+            Description = "Should be rejected",
+            Priority = IssuePriority.Medium,
+            AssigneeId = otherUserId
+        };
+
+        var response = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            request);
+
+        Assert.Equal(
+            HttpStatusCode.BadRequest,
+            response.StatusCode);
+
+        var problem = await response.Content
+            .ReadFromJsonAsync<ProblemDetails>(
+                JsonOptions);
+
+        Assert.NotNull(problem);
+
+        Assert.Equal(400, problem.Status);
+        Assert.Equal("Invalid assignee", problem.Title);
+
+        Assert.Equal(
+            "The issue can only be assigned to the current user.",
+            problem.Detail);
+    }
+
+    [Fact]
+    public async Task CreateIssue_ReturnsAssignee_WhenAssignedToCurrentUser()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        var userId =
+            await AuthenticationHelper.AuthenticateAsync(
+                client,
+                "assigned@trackr.com");
+
+        await SeedProjectAsync(
+            factory,
+            userId);
+
+        var request = new CreateIssueRequest
+        {
+            Title = "Assigned issue",
+            Description = "Assigned to myself",
+            Priority = IssuePriority.High,
+            AssigneeId = userId
+        };
+
+        var response = await client.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            request);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            response.StatusCode);
+
+        var issue = await response.Content
+            .ReadFromJsonAsync<IssueResponse>(
+                JsonOptions);
+
+        Assert.NotNull(issue);
+        Assert.Equal(userId, issue.AssigneeId);
     }
 
     private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)

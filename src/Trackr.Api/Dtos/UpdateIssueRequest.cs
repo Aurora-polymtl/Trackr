@@ -15,4 +15,6 @@ public class UpdateIssueRequest
     public IssueStatus Status { get; set; }
 
     public IssuePriority Priority { get; set; }
+
+    public string? AssigneeId { get; set; }
 }

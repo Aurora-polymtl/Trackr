@@ -37,5 +37,10 @@ public class IssueConfiguration : IEntityTypeConfiguration<Issue>
             .WithMany(project => project.Issues)
             .HasForeignKey(issue => issue.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(issue => issue.Assignee)
+            .WithMany()
+            .HasForeignKey(issue => issue.AssigneeId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -23,7 +23,7 @@ public class ThrowingIssueService : IIssueService
         throw new NotImplementedException();
     }
 
-    public Task<Issue?> CreateIssueAsync(
+    public Task<(IssueOperationResult Result, Issue? Issue)> CreateIssueAsync(
         int projectId,
         CreateIssueRequest request,
         string userId)
@@ -31,7 +31,7 @@ public class ThrowingIssueService : IIssueService
         throw new NotImplementedException();
     }
 
-    public Task<bool> UpdateIssueAsync(
+    public Task<IssueOperationResult> UpdateIssueAsync(
         int projectId,
         int id,
         UpdateIssueRequest request,
