@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Trackr.Api.Services;
 using Trackr.Api.Dtos;
 
 namespace Trackr.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ProjectsController : ControllerBase

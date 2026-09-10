@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,7 @@ public class ProjectsControllerTests
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.GetAsync("/api/projects/999");
 
@@ -37,8 +39,52 @@ public class ProjectsControllerTests
         await using var factory = new TrackrApiFactory();
         await SeedProjectAsync(factory);
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.GetAsync("/api/projects/1");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetProjects_ReturnsUnauthorized_WhenUserIsNotAuthenticated()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/projects");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetProjects_ReturnsUnauthorized_WhenTokenIsInvalid()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            "invalid-token"
+        );
+
+        var response = await client.GetAsync("/api/projects");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetProjects_AllowsAuthenticatedUser()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(client);
+
+        var response = await client.GetAsync("/api/projects");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -48,6 +94,7 @@ public class ProjectsControllerTests
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
 
         var request = new 
         {
@@ -72,6 +119,7 @@ public class ProjectsControllerTests
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.DeleteAsync("/api/projects/999");
 

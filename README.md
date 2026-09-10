@@ -31,6 +31,9 @@ The API currently supports:
 * Creation and update timestamps
 * Request validation
 * RESTful HTTP responses and resource locations
+* User registration and login with ASP.NET Core Identity
+* JWT-based authentication
+* Protected project and issue endpoints
 
 ## Tech Stack
 
@@ -83,6 +86,8 @@ The API uses DTOs to separate its public HTTP contract from Entity Framework Cor
 GET    /api/projects
 GET    /api/projects/{id}
 POST   /api/projects
+POST   /api/auth/register
+POST   /api/auth/login
 PUT    /api/projects/{id}
 DELETE /api/projects/{id}
 ```

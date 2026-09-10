@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Trackr.Api.Dtos;
 using Trackr.Api.Models;
 using Trackr.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Trackr.Api.Controllers;
 
@@ -13,6 +14,7 @@ public class AuthController(
     ITokenService tokenService
 ) : ControllerBase
 {
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
@@ -52,6 +54,7 @@ public class AuthController(
         return StatusCode(StatusCodes.Status201Created, response);
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {

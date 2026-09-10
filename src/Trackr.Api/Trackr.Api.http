@@ -1,4 +1,5 @@
 @host = http://localhost:5257
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhOTc1MjcyYS1hNTk1LTRkYTMtOTIxMi05OTA5MGViYjk5Y2IiLCJlbWFpbCI6InRlc3RAdHJhY2tyLmNvbSIsImV4cCI6MTc4OTA2MzI0NSwiaXNzIjoiVHJhY2tyLkFwaSIsImF1ZCI6IlRyYWNrci5DbGllbnQifQ.VHio-IUzUz2bL1FSA6oDg9tTTQ2BkIbBwc2CzeWDSLY
 
 GET {{host}}/api/projects
 Accept: application/json
@@ -303,5 +304,15 @@ Content-Type: application/json
   "email": "unknown@trackr.com",
   "password": "Trackr123!"
 }
+
+### Get projects with token
+GET {{host}}/api/projects
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Get project issues authenticated
+GET {{host}}/api/projects/2/issues
+Accept: application/json
+Authorization: Bearer {{token}}
 
 

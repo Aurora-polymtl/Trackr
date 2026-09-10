@@ -19,6 +19,7 @@ public class IssuesControllerTests
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.GetAsync("/api/projects/999/issues");
 
@@ -41,6 +42,7 @@ public class IssuesControllerTests
         await using var factory = new TrackrApiFactory();
         await SeedProjectAsync(factory);
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.GetAsync("/api/projects/1/issues");
 
@@ -53,6 +55,7 @@ public class IssuesControllerTests
         await using var factory = new TrackrApiFactory();
         await SeedProjectAsync(factory);
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.GetAsync("/api/projects/1/issues");
         response.EnsureSuccessStatusCode();
@@ -76,6 +79,7 @@ public class IssuesControllerTests
             }
         };
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.GetAsync("/api/projects/1/issues");
 
@@ -102,6 +106,8 @@ public class IssuesControllerTests
         await using var factory = new TrackrApiFactory();
         await SeedProjectAsync(factory);
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
+
         var request = new CreateIssueRequest
         {
             Title = "Integration test issue",
@@ -130,6 +136,8 @@ public class IssuesControllerTests
         await using var factory = new TrackrApiFactory();
         await SeedProjectAsync(factory);
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
+
         var request = new 
         {
             description = "Missing title",
@@ -147,6 +155,8 @@ public class IssuesControllerTests
         await using var factory = new TrackrApiFactory();
         await SeedProjectAsync(factory);
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
+
         var request = new 
         {
             title = "Invalid priority issue",
@@ -164,6 +174,8 @@ public class IssuesControllerTests
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(client);
+        
         var request = new CreateIssueRequest
         {
             Title = "Test issue",
