@@ -22,5 +22,13 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
 
         builder.Property(project => project.UpdatedAt)
             .IsRequired();
+
+        builder.HasOne(project => project.User)
+            .WithMany(user => user.Projects)
+            .HasForeignKey(project => project.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(project => project.UserId)
+            .IsRequired();
     }
 }

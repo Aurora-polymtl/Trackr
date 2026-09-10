@@ -8,4 +8,6 @@ public class Project
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public ICollection<Issue> Issues { get; set; } = new List<Issue>();
+    public string UserId { get; set; } = string.Empty;
+    public ApplicationUser User { get; set; } = null!;
 }

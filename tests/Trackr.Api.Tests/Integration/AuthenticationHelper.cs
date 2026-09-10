@@ -7,7 +7,7 @@ namespace Trackr.Api.Tests.Integration;
 
 public static class AuthenticationHelper
 {
-    public static async Task AuthenticateAsync(
+    public static async Task<string> AuthenticateAsync(
         HttpClient client,
         string email = "integration@trackr.com",
         string password = "Trackr123!"
@@ -45,5 +45,7 @@ public static class AuthenticationHelper
             "Bearer",
             loginResult.AccessToken
         );
+
+        return loginResult.UserId;
     }
 }

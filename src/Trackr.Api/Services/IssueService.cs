@@ -16,16 +16,19 @@ public class IssueService : IIssueService
 
     public async Task<PagedResponse<IssueResponse>?> GetIssuesByProjectAsync(
         int projectId,
-        IssueQueryParameters queryParameters
+        IssueQueryParameters queryParameters,
+        string userId
         )
     {
-        var projectExists = await _dbContext.Projects.AnyAsync(project => project.Id == projectId);
+        var projectExists = await _dbContext.Projects.AnyAsync(project =>
+            project.Id == projectId &&
+            project.UserId == userId);
 
         if (!projectExists)
         {
             return null;
         }
-        
+
         var query = _dbContext.Issues
             .Where(issue => issue.ProjectId == projectId)
             .AsQueryable();
@@ -42,8 +45,8 @@ public class IssueService : IIssueService
 
         if (!string.IsNullOrWhiteSpace(queryParameters.Search))
         {
-            query = query.Where(issue => 
-                issue.Title.Contains(queryParameters.Search) || 
+            query = query.Where(issue =>
+                issue.Title.Contains(queryParameters.Search) ||
                 issue.Description.Contains(queryParameters.Search));
         }
 
@@ -58,16 +61,16 @@ public class IssueService : IIssueService
                     : query.OrderByDescending(issue => issue.UpdatedAt),
             IssueSortBy.Priority =>
                 queryParameters.SortDirection == SortDirection.Asc
-                    ? query.OrderBy(issue => 
+                    ? query.OrderBy(issue =>
                         issue.Priority == IssuePriority.Low ? 0 :
-                        issue.Priority == IssuePriority.Medium ? 1 : 
-                        issue.Priority == IssuePriority.High ? 2 : 
+                        issue.Priority == IssuePriority.Medium ? 1 :
+                        issue.Priority == IssuePriority.High ? 2 :
                         issue.Priority == IssuePriority.Critical ? 3 :
                         4)
-                    : query.OrderByDescending(issue => 
+                    : query.OrderByDescending(issue =>
                         issue.Priority == IssuePriority.Low ? 0 :
-                        issue.Priority == IssuePriority.Medium ? 1 : 
-                        issue.Priority == IssuePriority.High ? 2 : 
+                        issue.Priority == IssuePriority.Medium ? 1 :
+                        issue.Priority == IssuePriority.High ? 2 :
                         issue.Priority == IssuePriority.Critical ? 3 :
                         4),
             IssueSortBy.Status =>
@@ -106,10 +109,13 @@ public class IssueService : IIssueService
         };
     }
 
-    public async Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id)
+    public async Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id, string userId)
     {
         return await _dbContext.Issues
-            .Where(issue => issue.Id == id && issue.ProjectId == projectId)
+            .Where(issue =>
+                issue.Id == id &&
+                issue.ProjectId == projectId &&
+                issue.Project.UserId == userId)
             .Select(issue => new IssueResponse
             {
                 Id = issue.Id,
@@ -124,11 +130,14 @@ public class IssueService : IIssueService
             .FirstOrDefaultAsync();
     }
 
-    public async Task<Issue?> CreateIssueAsync(int projectId, CreateIssueRequest request)
+    public async Task<Issue?> CreateIssueAsync(int projectId, CreateIssueRequest request, string userId)
     {
-        var project = await _dbContext.Projects.FindAsync(projectId);
+        var projectExists = await _dbContext.Projects
+            .AnyAsync(project =>
+                project.Id == projectId &&
+                project.UserId == userId);
 
-        if (project is null)
+        if (!projectExists)
         {
             return null;
         }
@@ -152,10 +161,13 @@ public class IssueService : IIssueService
         return issue;
     }
 
-    public async Task<bool> UpdateIssueAsync(int projectId, int id, UpdateIssueRequest request)
+    public async Task<bool> UpdateIssueAsync(int projectId, int id, UpdateIssueRequest request, string userId)
     {
         var issue = await _dbContext.Issues
-            .FirstOrDefaultAsync(issue => issue.Id == id && issue.ProjectId == projectId);
+            .FirstOrDefaultAsync(issue => 
+                issue.Id == id && 
+                issue.ProjectId == projectId &&
+                issue.Project.UserId == userId);
 
         if (issue is null)
         {
@@ -173,10 +185,13 @@ public class IssueService : IIssueService
         return true;
     }
 
-    public async Task<bool> DeleteIssueAsync(int projectId, int id)
+    public async Task<bool> DeleteIssueAsync(int projectId, int id, string userId)
     {
         var issue = await _dbContext.Issues
-            .FirstOrDefaultAsync(issue => issue.Id == id && issue.ProjectId == projectId);
+            .FirstOrDefaultAsync(issue => 
+                issue.Id == id && 
+                issue.ProjectId == projectId &&
+                issue.Project.UserId == userId);
 
         if (issue is null)
         {

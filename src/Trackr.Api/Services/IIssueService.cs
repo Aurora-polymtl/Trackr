@@ -7,10 +7,11 @@ public interface IIssueService
 {
     Task<PagedResponse<IssueResponse>?> GetIssuesByProjectAsync(
         int projectId, 
-        IssueQueryParameters queryParameters
+        IssueQueryParameters queryParameters,
+        string userId
         );
-    Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id);
-    Task<Issue?> CreateIssueAsync(int projectId, CreateIssueRequest request);
-    Task<bool> UpdateIssueAsync(int projectId, int id, UpdateIssueRequest request);
-    Task<bool> DeleteIssueAsync(int projectId, int id);
+    Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id, string userId);
+    Task<Issue?> CreateIssueAsync(int projectId, CreateIssueRequest request, string userId);
+    Task<bool> UpdateIssueAsync(int projectId, int id, UpdateIssueRequest request, string userId);
+    Task<bool> DeleteIssueAsync(int projectId, int id, string userId);
 }

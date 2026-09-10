@@ -27,9 +27,13 @@ public class TokenService(IConfiguration configuration) : ITokenService
                 user.Id
             ),
             new(
+                ClaimTypes.NameIdentifier,
+                user.Id
+            ),
+            new(
                 JwtRegisteredClaimNames.Email, 
                 user.Email ?? string.Empty
-                )
+            )
         };
 
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));

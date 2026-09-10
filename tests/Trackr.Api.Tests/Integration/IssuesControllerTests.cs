@@ -19,7 +19,7 @@ public class IssuesControllerTests
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.GetAsync("/api/projects/999/issues");
 
@@ -40,9 +40,9 @@ public class IssuesControllerTests
     public async Task GetIssues_ReturnsOk_WhenProjectExists()
     {
         await using var factory = new TrackrApiFactory();
-        await SeedProjectAsync(factory);
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
+        await SeedProjectAsync(factory, userId);
 
         var response = await client.GetAsync("/api/projects/1/issues");
 
@@ -53,9 +53,9 @@ public class IssuesControllerTests
     public async Task GetIssues_ReturnsEmptyPagedResponse_WhenProjectHasNoIssues()
     {
         await using var factory = new TrackrApiFactory();
-        await SeedProjectAsync(factory);
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
+        await SeedProjectAsync(factory, userId);
 
         var response = await client.GetAsync("/api/projects/1/issues");
         response.EnsureSuccessStatusCode();
@@ -79,7 +79,7 @@ public class IssuesControllerTests
             }
         };
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.GetAsync("/api/projects/1/issues");
 
@@ -104,9 +104,9 @@ public class IssuesControllerTests
     public async Task CreateIssue_ReturnsCreated_WhenRequestIsValid()
     {
         await using var factory = new TrackrApiFactory();
-        await SeedProjectAsync(factory);
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
+        await SeedProjectAsync(factory, userId);
 
         var request = new CreateIssueRequest
         {
@@ -134,9 +134,9 @@ public class IssuesControllerTests
     public async Task CreateIssue_ReturnsBadRequest_WhenTitleIsMissing()
     {
         await using var factory = new TrackrApiFactory();
-        await SeedProjectAsync(factory);
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
+        await SeedProjectAsync(factory, userId);
 
         var request = new 
         {
@@ -153,9 +153,9 @@ public class IssuesControllerTests
     public async Task CreateIssue_ReturnsBadRequest_WhenPriorityIsInvalid()
     {
         await using var factory = new TrackrApiFactory();
-        await SeedProjectAsync(factory);
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
+        await SeedProjectAsync(factory, userId);
 
         var request = new 
         {
@@ -174,7 +174,7 @@ public class IssuesControllerTests
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
         
         var request = new CreateIssueRequest
         {
@@ -195,7 +195,7 @@ public class IssuesControllerTests
         Assert.Equal("Project not found", problem.Title);
     }
 
-    private static async Task SeedProjectAsync(TrackrApiFactory factory)
+    private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
     {
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TrackrDbContext>();
@@ -205,6 +205,7 @@ public class IssuesControllerTests
             Id = 1,
             Name = "Integration Test Project",
             Description = "Project created for integration tests",
+            UserId = userId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         });

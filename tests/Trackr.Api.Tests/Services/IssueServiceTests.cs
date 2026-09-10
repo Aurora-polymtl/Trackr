@@ -8,6 +8,8 @@ namespace Trackr.Api.Tests.Services;
 
 public class IssueServiceTests
 {
+    private const string TestUserId = "test-user-id";
+
     private TrackrDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<TrackrDbContext>()
@@ -21,9 +23,16 @@ public class IssueServiceTests
     public async Task GetIssuesByProjectAsync_ReturnsNull_WhenProjectDoesNotExist()
     {
         await using var dbContext = CreateDbContext();
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
+        await dbContext.SaveChangesAsync();
         var service = new IssueService(dbContext);
         var queryParameters = new IssueQueryParameters();
-        var result = await service.GetIssuesByProjectAsync(999, queryParameters);
+        var result = await service.GetIssuesByProjectAsync(999, queryParameters, TestUserId);
         Assert.Null(result);
     }
 
@@ -31,18 +40,25 @@ public class IssueServiceTests
     public async Task GetIssuesByProjectAsync_ReturnsEmptyPage_WhenProjectHasNoIssues()
     {
         await using var dbContext = CreateDbContext();
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
         dbContext.Projects.Add(new Project
         {
             Id = 1,
             Name = "Test Project",
             Description = "Project for testing",
+            UserId = TestUserId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         });
         await dbContext.SaveChangesAsync();
         var service = new IssueService(dbContext);
         var queryParameters = new IssueQueryParameters();
-        var result = await service.GetIssuesByProjectAsync(1, queryParameters);
+        var result = await service.GetIssuesByProjectAsync(1, queryParameters, TestUserId);
         Assert.NotNull(result);
         Assert.Empty(result.Items);
         Assert.Equal(0, result.TotalCount);
@@ -53,11 +69,18 @@ public class IssueServiceTests
     public async Task GetIssuesByProjectAsync_ReturnsCorrectPage()
     {
         await using var dbContext = CreateDbContext();
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
         dbContext.Projects.Add(new Project
         {
             Id = 1,
             Name = "Test Project",
             Description = "Project for testing",
+            UserId = TestUserId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         });
@@ -96,7 +119,7 @@ public class IssueServiceTests
         await dbContext.SaveChangesAsync();
         var service = new IssueService(dbContext);
         var queryParameters = new IssueQueryParameters { Page = 2, PageSize = 2 };
-        var result = await service.GetIssuesByProjectAsync(1, queryParameters);
+        var result = await service.GetIssuesByProjectAsync(1, queryParameters, TestUserId);
         Assert.NotNull(result);
         Assert.Equal(3, result.TotalCount);
         Assert.Equal(2, result.TotalPages);
@@ -118,7 +141,7 @@ public class IssueServiceTests
         await SeedIssuesAsync(dbContext);
         var service = new IssueService(dbContext);
         var queryParameters = new IssueQueryParameters { Priority = priority };
-        var result = await service.GetIssuesByProjectAsync(1, queryParameters);
+        var result = await service.GetIssuesByProjectAsync(1, queryParameters, TestUserId);
         Assert.NotNull(result);
         Assert.Equal(expectedCount, result.TotalCount);
         Assert.All(result.Items, issue => Assert.Equal(priority, issue.Priority));
@@ -135,7 +158,7 @@ public class IssueServiceTests
         await SeedIssuesAsync(dbContext);
         var service = new IssueService(dbContext);
         var queryParameters = new IssueQueryParameters { Status = status };
-        var result = await service.GetIssuesByProjectAsync(1, queryParameters);
+        var result = await service.GetIssuesByProjectAsync(1, queryParameters, TestUserId);
         Assert.NotNull(result);
         Assert.Equal(expectedCount, result.TotalCount);
         Assert.All(result.Items, issue => Assert.Equal(status, issue.Status));
@@ -151,7 +174,7 @@ public class IssueServiceTests
         await SeedIssuesAsync(dbContext);
         var service = new IssueService(dbContext);
         var queryParameters = new IssueQueryParameters { Search = search };
-        var result = await service.GetIssuesByProjectAsync(1, queryParameters);
+        var result = await service.GetIssuesByProjectAsync(1, queryParameters, TestUserId);
         Assert.NotNull(result);
         Assert.Equal(expectedCount, result.TotalCount);
     }
@@ -167,9 +190,9 @@ public class IssueServiceTests
             Status = IssueStatus.InProgress,
             Priority = IssuePriority.High,
         };
-        var result = await service.GetIssuesByProjectAsync(1, queryParameters);
+        var result = await service.GetIssuesByProjectAsync(1, queryParameters, TestUserId);
         Assert.NotNull(result);
-        
+
         var issue = Assert.Single(result.Items);
         Assert.Equal("Fix authentication", issue.Title);
     }
@@ -185,7 +208,7 @@ public class IssueServiceTests
             SortBy = IssueSortBy.Priority,
             SortDirection = SortDirection.Asc
         };
-        var result = await service.GetIssuesByProjectAsync(1, queryParameters);
+        var result = await service.GetIssuesByProjectAsync(1, queryParameters, TestUserId);
         Assert.NotNull(result);
 
         var priorities = result.Items.Select(issue => issue.Priority).ToList();
@@ -211,7 +234,7 @@ public class IssueServiceTests
             SortBy = IssueSortBy.Priority,
             SortDirection = SortDirection.Desc
         };
-        var result = await service.GetIssuesByProjectAsync(1, queryParameters);
+        var result = await service.GetIssuesByProjectAsync(1, queryParameters, TestUserId);
         Assert.NotNull(result);
 
         var priorities = result.Items.Select(issue => issue.Priority).ToList();
@@ -230,11 +253,18 @@ public class IssueServiceTests
     public async Task CreateIssueAsync_CreatesIssueWithExpectedDefaults()
     {
         await using var dbContext = CreateDbContext();
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
         dbContext.Projects.Add(new Project
         {
             Id = 1,
             Name = "Test Project",
             Description = "Project for testing",
+            UserId = TestUserId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         });
@@ -247,9 +277,9 @@ public class IssueServiceTests
             Priority = IssuePriority.High
         };
         var beforeCreation = DateTime.UtcNow;
-        var result = await service.CreateIssueAsync(1, request);
+        var result = await service.CreateIssueAsync(1, request, TestUserId);
         var afterCreation = DateTime.UtcNow;
-        
+
         Assert.NotNull(result);
         Assert.Equal("New Issue", result.Title);
         Assert.Equal("Issue created from test", result.Description);
@@ -268,6 +298,12 @@ public class IssueServiceTests
     public async Task CreateIssueAsync_ReturnsNull_WhenProjectDoesNotExist()
     {
         await using var dbContext = CreateDbContext();
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
         var service = new IssueService(dbContext);
         var request = new CreateIssueRequest
         {
@@ -275,7 +311,7 @@ public class IssueServiceTests
             Description = "Test issue",
             Priority = IssuePriority.Medium
         };
-        var result = await service.CreateIssueAsync(999, request);
+        var result = await service.CreateIssueAsync(999, request, TestUserId);
         Assert.Null(result);
         Assert.Empty(dbContext.Issues);
     }
@@ -284,6 +320,12 @@ public class IssueServiceTests
     public async Task UpdateIssueAsync_UpdatesIssue()
     {
         await using var dbContext = CreateDbContext();
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
         var createdAt = DateTime.UtcNow.AddHours(-1);
         var issue = new Issue
         {
@@ -301,6 +343,7 @@ public class IssueServiceTests
             Id = 1,
             Name = "Test Project",
             Description = "Project for testing",
+            UserId = TestUserId,
             CreatedAt = createdAt,
             UpdatedAt = createdAt
         });
@@ -315,7 +358,7 @@ public class IssueServiceTests
             Priority = IssuePriority.High
         };
         var beforeUpdate = DateTime.UtcNow;
-        var result = await service.UpdateIssueAsync(1, 1, request);
+        var result = await service.UpdateIssueAsync(1, 1, request, TestUserId);
         var afterUpdate = DateTime.UtcNow;
         Assert.True(result);
         var updatedIssue = await dbContext.Issues.SingleAsync(issue => issue.Id == 1);
@@ -332,12 +375,19 @@ public class IssueServiceTests
     {
         await using var dbContext = CreateDbContext();
         var now = DateTime.UtcNow;
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
         dbContext.Projects.AddRange(
             new Project
             {
                 Id = 1,
                 Name = "Project 1",
                 Description = "",
+                UserId = TestUserId,
                 CreatedAt = now,
                 UpdatedAt = now
             },
@@ -346,6 +396,7 @@ public class IssueServiceTests
                 Id = 2,
                 Name = "Project 2",
                 Description = "",
+                UserId = TestUserId,
                 CreatedAt = now,
                 UpdatedAt = now
             }
@@ -370,7 +421,7 @@ public class IssueServiceTests
             Status = IssueStatus.Done,
             Priority = IssuePriority.Critical
         };
-        var result = await service.UpdateIssueAsync(2, 1, request);
+        var result = await service.UpdateIssueAsync(2, 1, request, TestUserId);
         Assert.False(result);
         var issue = await dbContext.Issues.SingleAsync();
         Assert.Equal("Original Title", issue.Title);
@@ -382,11 +433,18 @@ public class IssueServiceTests
     {
         await using var dbContext = CreateDbContext();
         var now = DateTime.UtcNow;
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
         dbContext.Projects.Add(new Project
         {
             Id = 1,
             Name = "Test Project",
             Description = "",
+            UserId = TestUserId,
             CreatedAt = now,
             UpdatedAt = now
         });
@@ -403,7 +461,7 @@ public class IssueServiceTests
         });
         await dbContext.SaveChangesAsync();
         var service = new IssueService(dbContext);
-        var result = await service.DeleteIssueAsync(1, 1);
+        var result = await service.DeleteIssueAsync(1, 1, TestUserId);
         Assert.True(result);
         Assert.Empty(dbContext.Issues);
     }
@@ -413,12 +471,19 @@ public class IssueServiceTests
     {
         await using var dbContext = CreateDbContext();
         var now = DateTime.UtcNow;
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
         dbContext.Projects.AddRange(
             new Project
             {
                 Id = 1,
                 Name = "Project 1",
                 Description = "",
+                UserId = TestUserId,
                 CreatedAt = now,
                 UpdatedAt = now
             },
@@ -427,6 +492,7 @@ public class IssueServiceTests
                 Id = 2,
                 Name = "Project 2",
                 Description = "",
+                UserId = TestUserId,
                 CreatedAt = now,
                 UpdatedAt = now
             }
@@ -444,7 +510,7 @@ public class IssueServiceTests
         });
         await dbContext.SaveChangesAsync();
         var service = new IssueService(dbContext);
-        var result = await service.DeleteIssueAsync(2, 1);
+        var result = await service.DeleteIssueAsync(2, 1, TestUserId);
         Assert.False(result);
         Assert.Single(dbContext.Issues);
     }
@@ -452,11 +518,18 @@ public class IssueServiceTests
     private static async Task SeedIssuesAsync(TrackrDbContext dbContext)
     {
         var now = DateTime.UtcNow;
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
         dbContext.Projects.Add(new Project
         {
             Id = 1,
             Name = "Test Project",
             Description = "Project for testing",
+            UserId = TestUserId,
             CreatedAt = now,
             UpdatedAt = now
         });

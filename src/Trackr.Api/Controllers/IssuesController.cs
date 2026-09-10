@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Trackr.Api.Dtos;
 using Trackr.Api.Services;
 using Trackr.Api.Models;
@@ -12,6 +13,9 @@ namespace Trackr.Api.Controllers;
 public class IssuesController : ControllerBase
 {
     private readonly IIssueService _issueService;
+
+    private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? throw new InvalidOperationException("Authenticated user has no identifier.");
 
     public IssuesController(IIssueService issueService)
     {
@@ -26,7 +30,8 @@ public class IssuesController : ControllerBase
     {
         var response = await _issueService.GetIssuesByProjectAsync(
             projectId,
-            queryParameters
+            queryParameters,
+            CurrentUserId
         );
 
         if (response is null)
@@ -43,7 +48,7 @@ public class IssuesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetIssueById(int projectId, int id)
     {
-        var issue = await _issueService.GetIssueByIdAsync(projectId, id);
+        var issue = await _issueService.GetIssueByIdAsync(projectId, id, CurrentUserId);
 
         if (issue is null)
         {
@@ -56,7 +61,7 @@ public class IssuesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateIssue(int projectId, CreateIssueRequest request)
     {
-        var issue = await _issueService.CreateIssueAsync(projectId, request);
+        var issue = await _issueService.CreateIssueAsync(projectId, request, CurrentUserId);
 
         if (issue is null)
         {
@@ -91,7 +96,7 @@ public class IssuesController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateIssue(int projectId, int id, UpdateIssueRequest request)
     {
-        var updated = await _issueService.UpdateIssueAsync(projectId, id, request);
+        var updated = await _issueService.UpdateIssueAsync(projectId, id, request, CurrentUserId);
 
         if (!updated)
         {
@@ -104,7 +109,7 @@ public class IssuesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteIssue(int projectId, int id)
     {
-        var deleted = await _issueService.DeleteIssueAsync(projectId, id);
+        var deleted = await _issueService.DeleteIssueAsync(projectId, id, CurrentUserId);
 
         if (!deleted)
         {

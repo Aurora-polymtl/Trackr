@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Trackr.Api.Data;
 using Trackr.Api.Models;
+using Trackr.Api.Dtos;
 
 namespace Trackr.Api.Tests.Integration;
 
@@ -16,12 +17,12 @@ public class ProjectsControllerTests
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.GetAsync("/api/projects/999");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        
+
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
 
         var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(JsonOptions);
@@ -37,9 +38,9 @@ public class ProjectsControllerTests
     public async Task GetProject_ReturnsOk_WhenProjectExists()
     {
         await using var factory = new TrackrApiFactory();
-        await SeedProjectAsync(factory);
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
+        await SeedProjectAsync(factory, userId);
 
         var response = await client.GetAsync("/api/projects/1");
 
@@ -82,7 +83,7 @@ public class ProjectsControllerTests
 
         var client = factory.CreateClient();
 
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.GetAsync("/api/projects");
 
@@ -90,13 +91,65 @@ public class ProjectsControllerTests
     }
 
     [Fact]
+    public async Task GetProject_ReturnsNotFound_WhenProjectBelongsToAnotherUser()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(ownerClient, "owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var otherClient = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(otherClient, "other@trackr.com");
+
+        var response = await otherClient.GetAsync("/api/projects/1");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetProjects_ReturnsOnlyCurrentUsersProjects()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var firstClient = factory.CreateClient();
+
+        var firstUserId =
+            await AuthenticationHelper.AuthenticateAsync(
+                firstClient,
+                "first@trackr.com");
+
+        await SeedProjectAsync(
+            factory,
+            firstUserId);
+
+        var secondClient = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            secondClient,
+            "second@trackr.com");
+
+        var response = await secondClient.GetAsync(
+            "/api/projects");
+
+        response.EnsureSuccessStatusCode();
+
+        var projects = await response.Content
+            .ReadFromJsonAsync<List<ProjectResponse>>();
+
+        Assert.NotNull(projects);
+        Assert.Empty(projects);
+    }
+
+    [Fact]
     public async Task UpdateProject_ReturnsProblemDetails_WhenProjectDoesNotExist()
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
 
-        var request = new 
+        var request = new
         {
             Name = "Updated Project",
             Description = "Updated Description"
@@ -119,7 +172,7 @@ public class ProjectsControllerTests
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
-        await AuthenticationHelper.AuthenticateAsync(client);
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
 
         var response = await client.DeleteAsync("/api/projects/999");
 
@@ -132,13 +185,13 @@ public class ProjectsControllerTests
         Assert.Equal(404, problem.Status);
         Assert.Equal("Project not found", problem.Title);
     }
-    
+
     private readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
-    private static async Task SeedProjectAsync(TrackrApiFactory factory)
+    private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
     {
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TrackrDbContext>();
@@ -150,6 +203,7 @@ public class ProjectsControllerTests
             Id = 1,
             Name = "Integration test project",
             Description = "Project created for tests",
+            UserId = userId,
             CreatedAt = now,
             UpdatedAt = now
         });
