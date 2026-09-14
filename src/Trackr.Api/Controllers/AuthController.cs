@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Trackr.Api.Dtos;
@@ -87,6 +88,33 @@ public class AuthController(
             UserId = user.Id,
             Email = user.Email!,
             AccessToken = token
+        };
+
+        return Ok(response);
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId is null)
+        {
+            throw new InvalidOperationException("Authenticated user has no identifier.");
+        }
+
+        var user = await userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        var response = new CurrentUserResponse
+        {
+            Id = user.Id,
+            Email = user.Email ?? string.Empty
         };
 
         return Ok(response);

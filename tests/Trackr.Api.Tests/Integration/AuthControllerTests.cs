@@ -145,7 +145,7 @@ public class AuthControllerTests
         Assert.Equal(
             HttpStatusCode.OK,
             response.StatusCode);
-        
+
         var result = await response.Content
             .ReadFromJsonAsync<LoginResponse>(JsonOptions);
 
@@ -180,7 +180,7 @@ public class AuthControllerTests
 
         var problem = await response.Content
             .ReadFromJsonAsync<ProblemDetails>(JsonOptions);
-        
+
         Assert.NotNull(problem);
         Assert.Equal(
             "Invalid credentials",
@@ -234,8 +234,43 @@ public class AuthControllerTests
             response.StatusCode);
     }
 
+    [Fact]
+    public async Task GetCurrentUser_ReturnsUnauthorized_WhenUserIsNotAuthenticated()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/auth/me");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetCurrentUser_ReturnsCurrentUser_WhenUserIsAuthenticated()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        var userId = await AuthenticationHelper.AuthenticateAsync(
+            client,
+            "me@trackr.com");
+
+        var response = await client.GetAsync("/api/auth/me");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content
+            .ReadFromJsonAsync<CurrentUserResponse>(JsonOptions);
+
+        Assert.NotNull(result);
+        Assert.Equal(userId, result.Id);
+        Assert.Equal("me@trackr.com", result.Email);
+    }
+
     private static async Task RegisterUserAsync(
-        HttpClient client, 
+        HttpClient client,
         string email = "test@trackr.com",
         string password = "Trackr123!")
     {
@@ -248,7 +283,7 @@ public class AuthControllerTests
         var response = await client.PostAsJsonAsync(
             "/api/auth/register",
             request);
-        
+
         Assert.Equal(
             HttpStatusCode.Created,
             response.StatusCode);
