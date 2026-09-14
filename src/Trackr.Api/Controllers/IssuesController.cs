@@ -79,6 +79,11 @@ public class IssuesController : ControllerBase
                 detail: "The issue can only be assigned to the current user.");
         }
 
+        if (issue is null)
+        {
+            throw new InvalidOperationException("Issue creation succeeded without returning an issue.");
+        }
+
         var response = new IssueResponse
         {
             Id = issue.Id,
@@ -105,9 +110,18 @@ public class IssuesController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateIssue(int projectId, int id, UpdateIssueRequest request)
     {
-        var updated = await _issueService.UpdateIssueAsync(projectId, id, request, CurrentUserId);
+        var result = await _issueService.UpdateIssueAsync(projectId, id, request, CurrentUserId);
 
-        if (updated != IssueOperationResult.Success)
+        if (result == IssueOperationResult.InvalidAssignee)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid assignee",
+                detail: "The issue can only be assigned to the current user."
+            );
+        }
+
+        if (result != IssueOperationResult.Success)
         {
             return NotFound();
         }

@@ -288,6 +288,64 @@ public class IssuesControllerTests
         Assert.Equal(userId, issue.AssigneeId);
     }
 
+    [Fact]
+    public async Task UpdateIssue_ReturnsBadRequest_WhenAssigneeIsAnotherUser()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(ownerClient, "owner-update@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var otherClient = factory.CreateClient();
+
+        var otherUserId = await AuthenticationHelper.AuthenticateAsync(otherClient, "other-update@trackr.com");
+
+        var createRequest = new CreateIssueRequest
+        {
+            Title = "Original issue",
+            Description = "Original description",
+            Priority = IssuePriority.Medium
+        };
+
+        var createResponse = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            createRequest
+        );
+
+        createResponse.EnsureSuccessStatusCode();
+
+        var createdIssue = await createResponse.Content
+            .ReadFromJsonAsync<IssueResponse>(JsonOptions);
+
+        Assert.NotNull(createdIssue);
+
+        var updateRequest = new UpdateIssueRequest
+        {
+            Title = "Should not update",
+            Description = "Should not persist",
+            Status = IssueStatus.Done,
+            Priority = IssuePriority.Critical,
+            AssigneeId = otherUserId
+        };
+
+        var response = await ownerClient.PutAsJsonAsync(
+            $"/api/projects/1/issues/{createdIssue.Id}",
+            updateRequest
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+
+        Assert.NotNull(problem);
+        Assert.Equal(400, problem.Status);
+        Assert.Equal("Invalid assignee", problem.Title);
+        Assert.Equal("The issue can only be assigned to the current user.", problem.Detail);
+    }
+
     private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
     {
         using var scope = factory.Services.CreateScope();
