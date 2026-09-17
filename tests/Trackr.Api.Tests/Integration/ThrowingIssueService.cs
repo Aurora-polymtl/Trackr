@@ -23,6 +23,15 @@ public class ThrowingIssueService : IIssueService
         throw new NotImplementedException();
     }
 
+    public Task<IReadOnlyList<IssueCommentResponse>?>
+    GetIssueCommentsAsync(
+        int projectId,
+        int issueId,
+        string userId)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<(IssueOperationResult Result, Issue? Issue)> CreateIssueAsync(
         int projectId,
         CreateIssueRequest request,

@@ -11,6 +11,7 @@ public interface IIssueService
         string userId
         );
     Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id, string userId);
+    Task<IReadOnlyList<IssueCommentResponse>?> GetIssueCommentsAsync(int projectId, int issueId, string userId);
     Task<(IssueOperationResult Result, Issue? Issue)> CreateIssueAsync(int projectId, CreateIssueRequest request, string userId);
     Task<(IssueOperationResult Result, IssueComment? Comment)> CreateIssueCommentAsync(
         int projectId, 

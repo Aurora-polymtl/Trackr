@@ -58,6 +58,23 @@ public class IssuesController : ControllerBase
         return Ok(issue);
     }
 
+    [HttpGet("{issueId}/comments")]
+    public async Task<IActionResult> GetIssueComments(int projectId, int issueId)
+    {
+        var comments = await _issueService.GetIssueCommentsAsync(projectId, issueId, CurrentUserId);
+
+        if (comments is null)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Issue not found",
+                detail: $"Issue with id {issueId} was not found."
+            );
+        }
+
+        return Ok(comments);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateIssue(int projectId, CreateIssueRequest request)
     {

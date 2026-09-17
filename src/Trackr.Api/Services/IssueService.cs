@@ -132,7 +132,38 @@ public class IssueService : IIssueService
             .FirstOrDefaultAsync();
     }
 
-    public async Task<(IssueOperationResult Result, Issue? Issue)> CreateIssueAsync(int projectId, CreateIssueRequest request, string userId)
+    public async Task<IReadOnlyList<IssueCommentResponse>?> GetIssueCommentsAsync(int projectId, int issueId, string userId)
+    {
+        var issueExists = await _dbContext.Issues.AnyAsync(issue => 
+        issue.Id == issueId &&
+        issue.ProjectId == projectId &&
+        issue.Project.UserId == userId);
+
+        if (!issueExists)
+        {
+            return null;
+        }
+
+        return await _dbContext.IssueComments
+            .Where(comment => comment.IssueId == issueId)
+            .OrderBy(comment => comment.CreatedAt)
+            .ThenBy(comment => comment.Id)
+            .Select(comment => new IssueCommentResponse
+            {
+                Id = comment.Id,
+                Content = comment.Content,
+                CreatedAt = comment.CreatedAt,
+                UpdatedAt = comment.UpdatedAt,
+                IssueId = comment.IssueId,
+                AuthorId = comment.AuthorId
+            })
+            .ToListAsync();
+    }
+
+    public async Task<(IssueOperationResult Result, Issue? Issue)> CreateIssueAsync(
+        int projectId, 
+        CreateIssueRequest request, 
+        string userId)
     {
         var projectExists = await _dbContext.Projects
             .AnyAsync(project =>

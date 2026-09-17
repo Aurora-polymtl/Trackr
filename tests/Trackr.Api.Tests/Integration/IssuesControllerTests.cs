@@ -423,6 +423,63 @@ public class IssuesControllerTests
         Assert.Equal("Issue with id 1 was not found.", problem.Detail);
     }
 
+    [Fact]
+    public async Task GetIssueComments_ReturnsComments_WhenIssueBelongsToUser()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
+
+        await SeedIssueAsync(factory, userId);
+
+        await client.PostAsJsonAsync(
+            "/api/projects/1/issues/1/comments",
+            new CreateIssueCommentRequest { Content = "First comment" });
+
+        await client.PostAsJsonAsync(
+            "/api/projects/1/issues/1/comments",
+            new CreateIssueCommentRequest { Content = "Second comment" });
+
+        var response = await client.GetAsync(
+            "/api/projects/1/issues/1/comments");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var comments = await response.Content
+            .ReadFromJsonAsync<List<IssueCommentResponse>>(JsonOptions);
+
+        Assert.NotNull(comments);
+        Assert.Collection(
+            comments,
+            comment => Assert.Equal("First comment", comment.Content),
+            comment => Assert.Equal("Second comment", comment.Content));
+    }
+
+    [Fact]
+    public async Task GetIssueComments_ReturnsNotFound_WhenIssueBelongsToAnotherUser()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "comments-owner@trackr.com");
+
+        await SeedIssueAsync(factory, ownerId);
+
+        var otherClient = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            otherClient,
+            "comments-reader@trackr.com");
+
+        var response = await otherClient.GetAsync(
+            "/api/projects/1/issues/1/comments");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
     {
         using var scope = factory.Services.CreateScope();

@@ -923,6 +923,111 @@ public class IssueServiceTests
         Assert.Empty(dbContext.IssueComments);
     }
 
+    [Fact]
+    public async Task GetIssueCommentsAsync_ReturnsCommentsInChronologicalOrder()
+    {
+        await using var dbContext = CreateDbContext();
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId
+        });
+
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test project",
+            UserId = TestUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Test issue",
+            ProjectId = 1,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.IssueComments.AddRange(
+            new IssueComment
+            {
+                Id = 2,
+                Content = "Second comment",
+                IssueId = 1,
+                AuthorId = TestUserId,
+                CreatedAt = now.AddMinutes(1),
+                UpdatedAt = now.AddMinutes(1)
+            },
+            new IssueComment
+            {
+                Id = 1,
+                Content = "First comment",
+                IssueId = 1,
+                AuthorId = TestUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+
+        var comments = await service.GetIssueCommentsAsync(
+            1,
+            1,
+            TestUserId);
+
+        Assert.NotNull(comments);
+        Assert.Collection(
+            comments,
+            comment => Assert.Equal("First comment", comment.Content),
+            comment => Assert.Equal("Second comment", comment.Content));
+    }
+
+    [Fact]
+    public async Task GetIssueCommentsAsync_ReturnsNull_WhenIssueBelongsToAnotherUser()
+    {
+        await using var dbContext = CreateDbContext();
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.AddRange(
+            new ApplicationUser { Id = TestUserId },
+            new ApplicationUser { Id = OtherUserId });
+
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Private project",
+            UserId = OtherUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Private issue",
+            ProjectId = 1,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+
+        var comments = await service.GetIssueCommentsAsync(
+            1,
+            1,
+            TestUserId);
+
+        Assert.Null(comments);
+    }
+
     private static async Task SeedIssuesAsync(TrackrDbContext dbContext)
     {
         var now = DateTime.UtcNow;
