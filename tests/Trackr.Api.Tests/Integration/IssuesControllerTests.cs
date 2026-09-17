@@ -346,6 +346,83 @@ public class IssuesControllerTests
         Assert.Equal("The issue can only be assigned to the current user.", problem.Detail);
     }
 
+    [Fact]
+    public async Task CreateIssueComment_ReturnsCreated_WhenRequestIsValid()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        var userId = await AuthenticationHelper.AuthenticateAsync(
+            client,
+            "comment-author@trackr.com");
+
+        await SeedIssueAsync(factory, userId);
+
+        var request = new CreateIssueCommentRequest
+        {
+            Content = "Created through the API"
+        };
+
+        var response = await client.PostAsJsonAsync(
+            "/api/projects/1/issues/1/comments",
+            request);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var comment = await response.Content
+            .ReadFromJsonAsync<IssueCommentResponse>(JsonOptions);
+
+        Assert.NotNull(comment);
+        Assert.Equal("Created through the API", comment.Content);
+        Assert.Equal(1, comment.IssueId);
+        Assert.Equal(userId, comment.AuthorId);
+        Assert.NotNull(response.Headers.Location);
+
+        Assert.Contains(
+            $"/api/projects/1/issues/1/comments/{comment.Id}",
+            response.Headers.Location.ToString());
+    }
+
+    [Fact]
+    public async Task CreateIssueComment_ReturnsNotFound_WhenIssueBelongsToAnotherUser()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "comment-owner@trackr.com");
+
+        await SeedIssueAsync(factory, ownerId);
+
+        var otherClient = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            otherClient,
+            "comment-other@trackr.com");
+
+        var request = new CreateIssueCommentRequest
+        {
+            Content = "Unauthorized comment"
+        };
+
+        var response = await otherClient.PostAsJsonAsync(
+            "/api/projects/1/issues/1/comments",
+            request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var problem = await response.Content
+            .ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+
+        Assert.NotNull(problem);
+        Assert.Equal(404, problem.Status);
+        Assert.Equal("Issue not found", problem.Title);
+        Assert.Equal("Issue with id 1 was not found.", problem.Detail);
+    }
+
     private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
     {
         using var scope = factory.Services.CreateScope();
@@ -357,6 +434,32 @@ public class IssuesControllerTests
             Name = "Integration Test Project",
             Description = "Project created for integration tests",
             UserId = userId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task SeedIssueAsync(
+    TrackrApiFactory factory,
+    string userId)
+    {
+        await SeedProjectAsync(factory, userId);
+
+        using var scope = factory.Services.CreateScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<TrackrDbContext>();
+
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Integration test issue",
+            Description = "Issue used to test comments",
+            Status = IssueStatus.Backlog,
+            Priority = IssuePriority.Medium,
+            ProjectId = 1,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         });
