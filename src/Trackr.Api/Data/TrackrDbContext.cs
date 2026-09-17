@@ -12,6 +12,7 @@ public class TrackrDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<Issue> Issues => Set<Issue>();
+    public DbSet<IssueComment> IssueComments => Set<IssueComment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

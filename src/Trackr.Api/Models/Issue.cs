@@ -13,4 +13,5 @@ public class Issue
     public Project Project { get; set; } = null!;
     public string? AssigneeId { get; set; }
     public ApplicationUser? Assignee { get; set; }
+    public ICollection<IssueComment> Comments { get; set; } = new List<IssueComment>();
 }
