@@ -107,6 +107,47 @@ public class IssuesController : ControllerBase
                 response);
     }
 
+    [HttpPost("{issueId}/comments")]
+    public async Task<IActionResult> CreateIssueComment(
+        int projectId,
+        int issueId,
+        CreateIssueCommentRequest request
+    )
+    {
+        var (result, comment) = await _issueService.CreateIssueCommentAsync(
+            projectId,
+            issueId,
+            request,
+            CurrentUserId
+        );
+
+        if (result == IssueOperationResult.IssueNotFound)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Issue not found",
+                detail: $"Issue with id {issueId} was not found."
+            );
+        }
+
+        if (comment is null)
+        {
+            throw new InvalidOperationException("Comment creation succeeded without returning a comment.");
+        }
+
+        var response = new IssueCommentResponse
+        {
+            Id = comment.Id,
+            Content = comment.Content,
+            CreatedAt = comment.CreatedAt,
+            UpdatedAt = comment.UpdatedAt,
+            IssueId = comment.IssueId,
+            AuthorId = comment.AuthorId
+        };
+
+        return Created($"/api/projects/{projectId}/issues/{issueId}/comments/{comment.Id}", response);
+    }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateIssue(int projectId, int id, UpdateIssueRequest request)
     {

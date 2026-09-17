@@ -169,6 +169,37 @@ public class IssueService : IIssueService
         return (IssueOperationResult.Success, issue);
     }
 
+    public async Task<(IssueOperationResult Result, IssueComment? Comment)> CreateIssueCommentAsync(
+        int projectId,
+        int issueId,
+        CreateIssueCommentRequest request,
+        string userId
+    )
+    {
+        var issueExists = await _dbContext.Issues.AnyAsync(issue =>
+        issue.Id == issueId &&
+        issue.ProjectId == projectId &&
+        issue.Project.UserId == userId);
+        if (!issueExists)
+        {
+            return (IssueOperationResult.IssueNotFound, null);
+        }
+
+        var now = DateTime.UtcNow;
+        var comment = new IssueComment
+        {
+            Content = request.Content,
+            CreatedAt = now,
+            UpdatedAt = now,
+            IssueId = issueId,
+            AuthorId = userId
+        };
+        _dbContext.IssueComments.Add(comment);
+        await _dbContext.SaveChangesAsync();
+
+        return (IssueOperationResult.Success, comment);
+    }
+
     public async Task<IssueOperationResult> UpdateIssueAsync(int projectId, int id, UpdateIssueRequest request, string userId)
     {
         var issue = await _dbContext.Issues

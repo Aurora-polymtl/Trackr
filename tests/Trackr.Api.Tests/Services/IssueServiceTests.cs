@@ -818,6 +818,111 @@ public class IssueServiceTests
         Assert.Single(dbContext.Issues);
     }
 
+    [Fact]
+    public async Task CreateIssueCommentAsync_CreatesComment_WhenIssueBelongsToUser()
+    {
+        await using var dbContext = CreateDbContext();
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.Add(new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "test@trackr.com",
+            Email = "test@trackr.com"
+        });
+
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test project",
+            UserId = TestUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Test issue",
+            ProjectId = 1,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+
+        var request = new CreateIssueCommentRequest
+        {
+            Content = "A useful comment"
+        };
+
+        var (result, comment) =
+            await service.CreateIssueCommentAsync(
+                1,
+                1,
+                request,
+                TestUserId);
+
+        Assert.Equal(IssueOperationResult.Success, result);
+        Assert.NotNull(comment);
+        Assert.Equal(TestUserId, comment.AuthorId);
+
+        var persistedComment =
+            await dbContext.IssueComments.SingleAsync();
+
+        Assert.Equal("A useful comment", persistedComment.Content);
+        Assert.Equal(1, persistedComment.IssueId);
+    }
+
+    [Fact]
+    public async Task CreateIssueCommentAsync_ReturnsIssueNotFound_WhenProjectBelongsToAnotherUser()
+    {
+        await using var dbContext = CreateDbContext();
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.AddRange(
+            new ApplicationUser { Id = TestUserId },
+            new ApplicationUser { Id = OtherUserId });
+
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Private project",
+            UserId = OtherUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Private issue",
+            ProjectId = 1,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+
+        var (result, comment) =
+            await service.CreateIssueCommentAsync(
+                1,
+                1,
+                new CreateIssueCommentRequest
+                {
+                    Content = "Unauthorized comment"
+                },
+                TestUserId);
+
+        Assert.Equal(IssueOperationResult.IssueNotFound, result);
+        Assert.Null(comment);
+        Assert.Empty(dbContext.IssueComments);
+    }
+
     private static async Task SeedIssuesAsync(TrackrDbContext dbContext)
     {
         var now = DateTime.UtcNow;
