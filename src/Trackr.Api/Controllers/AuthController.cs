@@ -5,6 +5,10 @@ using Trackr.Api.Dtos;
 using Trackr.Api.Models;
 using Trackr.Api.Services;
 using Microsoft.AspNetCore.Authorization;
+using System.Reflection.Metadata;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
+using System.Net;
 
 namespace Trackr.Api.Controllers;
 
@@ -118,5 +122,47 @@ public class AuthController(
         };
 
         return Ok(response);
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId is null)
+        {
+            throw new InvalidOperationException("Authenticated user has no identifier.");
+        }
+
+        var user = await userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await userManager.ChangePasswordAsync(
+            user,
+            request.CurrentPassword,
+            request.NewPassword
+        );
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors
+                .GroupBy(errors => errors.Code)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .Select(errors => errors.Description)
+                        .ToArray()
+                );
+            var problemDetails = new ValidationProblemDetails(errors)
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "One or more validation errors occurred."
+            };
+            return BadRequest(problemDetails);
+        }
+        return NoContent();
     }
 }

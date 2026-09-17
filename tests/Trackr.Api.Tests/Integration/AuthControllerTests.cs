@@ -269,6 +269,101 @@ public class AuthControllerTests
         Assert.Equal("me@trackr.com", result.Email);
     }
 
+    [Fact]
+    public async Task ChangePassword_ReturnsUnauthorized_WhenUserIsNotAuthenticated()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        var request = new ChangePasswordRequest
+        {
+            CurrentPassword = "Trackr123!",
+            NewPassword = "NewTrackr123!"
+        };
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/change-password",
+            request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePassword_ReturnsNoContent_WhenPasswordsAreValid()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            client,
+            "password@trackr.com");
+
+        var request = new ChangePasswordRequest
+        {
+            CurrentPassword = "Trackr123!",
+            NewPassword = "NewTrackr123!"
+        };
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/change-password",
+            request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = null;
+
+        var oldPasswordResponse = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest
+            {
+                Email = "password@trackr.com",
+                Password = "Trackr123!"
+            });
+
+        var newPasswordResponse = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest
+            {
+                Email = "password@trackr.com",
+                Password = "NewTrackr123!"
+            });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, oldPasswordResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, newPasswordResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePassword_ReturnsBadRequest_WhenCurrentPasswordIsIncorrect()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            client,
+            "wrong-current@trackr.com");
+
+        var request = new ChangePasswordRequest
+        {
+            CurrentPassword = "WrongPassword123!",
+            NewPassword = "NewTrackr123!"
+        };
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/change-password",
+            request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content
+            .ReadFromJsonAsync<ValidationProblemDetails>(JsonOptions);
+
+        Assert.NotNull(problem);
+        Assert.Contains("PasswordMismatch", problem.Errors.Keys);
+    }
+
     private static async Task RegisterUserAsync(
         HttpClient client,
         string email = "test@trackr.com",
