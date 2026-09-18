@@ -480,6 +480,86 @@ public class IssuesControllerTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task GetIssueCommentById_ReturnsComment_WhenIssueBelongsToUser()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        var userId = await AuthenticationHelper.AuthenticateAsync(
+            client,
+            "comment-reader@trackr.com");
+
+        await SeedIssueAsync(factory, userId);
+
+        var createResponse = await client.PostAsJsonAsync(
+            "/api/projects/1/issues/1/comments",
+            new CreateIssueCommentRequest
+            {
+                Content = "Comment to retrieve"
+            });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        Assert.NotNull(createResponse.Headers.Location);
+
+        var response = await client.GetAsync(
+            createResponse.Headers.Location);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var comment = await response.Content
+            .ReadFromJsonAsync<IssueCommentResponse>(JsonOptions);
+
+        Assert.NotNull(comment);
+        Assert.Equal("Comment to retrieve", comment.Content);
+        Assert.Equal(1, comment.IssueId);
+        Assert.Equal(userId, comment.AuthorId);
+    }
+
+    [Fact]
+    public async Task GetIssueCommentById_ReturnsNotFound_WhenIssueBelongsToAnotherUser()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "comment-lookup-owner@trackr.com");
+
+        await SeedIssueAsync(factory, ownerId);
+
+        var createResponse = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/issues/1/comments",
+            new CreateIssueCommentRequest
+            {
+                Content = "Private comment"
+            });
+
+        var createdComment = await createResponse.Content
+            .ReadFromJsonAsync<IssueCommentResponse>(JsonOptions);
+
+        Assert.NotNull(createdComment);
+
+        var otherClient = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            otherClient,
+            "comment-lookup-other@trackr.com");
+
+        var response = await otherClient.GetAsync(
+            $"/api/projects/1/issues/1/comments/{createdComment.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var problem = await response.Content
+            .ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+
+        Assert.NotNull(problem);
+        Assert.Equal("Comment not found", problem.Title);
+    }
+
     private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
     {
         using var scope = factory.Services.CreateScope();

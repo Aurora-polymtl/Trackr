@@ -1,3 +1,5 @@
+using System.Data.Common;
+using System.Net.Mime;
 using Microsoft.EntityFrameworkCore;
 using Trackr.Api.Data;
 using Trackr.Api.Dtos;
@@ -158,6 +160,26 @@ public class IssueService : IIssueService
                 AuthorId = comment.AuthorId
             })
             .ToListAsync();
+    }
+
+    public async Task<IssueCommentResponse?> GetIssueCommentByIdAsync(int projectId, int issueId, int commentId, string userId)
+    {
+        return await _dbContext.IssueComments
+            .Where(comment => 
+                comment.Id == commentId &&
+                comment.IssueId == issueId &&
+                comment.Issue.ProjectId == projectId &&
+                comment.Issue.Project.UserId == userId)
+            .Select(comment => new IssueCommentResponse
+            {
+                Id = comment.Id,
+                Content = comment.Content,
+                CreatedAt = comment.CreatedAt,
+                UpdatedAt = comment.UpdatedAt,
+                IssueId = comment.IssueId,
+                AuthorId = comment.AuthorId
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<(IssueOperationResult Result, Issue? Issue)> CreateIssueAsync(

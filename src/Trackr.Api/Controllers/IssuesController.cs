@@ -75,6 +75,22 @@ public class IssuesController : ControllerBase
         return Ok(comments);
     }
 
+    [HttpGet("{issueId}/comments/{commentId}")]
+    public async Task<IActionResult> GetIssueCommentById(int projectId, int issueId, int commentId)
+    {
+        var comment = await _issueService.GetIssueCommentByIdAsync(projectId, issueId, commentId, CurrentUserId);
+
+        if (comment is null)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Comment not found",
+                detail: $"Comment with id {commentId} was not found."
+            );
+        }
+        return Ok(comment);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateIssue(int projectId, CreateIssueRequest request)
     {
@@ -162,7 +178,16 @@ public class IssuesController : ControllerBase
             AuthorId = comment.AuthorId
         };
 
-        return Created($"/api/projects/{projectId}/issues/{issueId}/comments/{comment.Id}", response);
+        return CreatedAtAction(
+            nameof(GetIssueCommentById),
+            new
+            {
+                projectId,
+                issueId,
+                commentId = comment.Id
+            },
+            response
+        );
     }
 
     [HttpPut("{id}")]
