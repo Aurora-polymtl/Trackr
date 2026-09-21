@@ -10,4 +10,5 @@ public class Project
     public ICollection<Issue> Issues { get; set; } = new List<Issue>();
     public string UserId { get; set; } = string.Empty;
     public ApplicationUser User { get; set; } = null!;
+    public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
 }
