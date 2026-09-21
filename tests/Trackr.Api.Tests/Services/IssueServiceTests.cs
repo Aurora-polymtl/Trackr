@@ -1028,6 +1028,66 @@ public class IssueServiceTests
         Assert.Null(comments);
     }
 
+    [Fact]
+    public async Task UpdateIssueCommentAsync_ReturnsFalse_WhenUserIsNotAuthor()
+    {
+        await using var dbContext = CreateDbContext();
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.AddRange(
+            new ApplicationUser { Id = TestUserId },
+            new ApplicationUser { Id = OtherUserId });
+
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test project",
+            UserId = TestUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Test issue",
+            ProjectId = 1,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.IssueComments.Add(new IssueComment
+        {
+            Id = 1,
+            Content = "Original content",
+            IssueId = 1,
+            AuthorId = OtherUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+
+        var updated = await service.UpdateIssueCommentAsync(
+            1,
+            1,
+            1,
+            new UpdateIssueCommentRequest
+            {
+                Content = "Unauthorized update"
+            },
+            TestUserId);
+
+        Assert.False(updated);
+
+        var comment = await dbContext.IssueComments.SingleAsync();
+
+        Assert.Equal("Original content", comment.Content);
+        Assert.Equal(now, comment.UpdatedAt);
+    }
+
     private static async Task SeedIssuesAsync(TrackrDbContext dbContext)
     {
         var now = DateTime.UtcNow;

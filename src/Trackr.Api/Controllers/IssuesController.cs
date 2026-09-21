@@ -212,6 +212,33 @@ public class IssuesController : ControllerBase
         return NoContent();
     }
 
+    [HttpPut("{issueId}/comments/{commentId}")]
+    public async Task<IActionResult> UpdateIssueComment(
+        int projectId, 
+        int issueId, 
+        int commentId, 
+        UpdateIssueCommentRequest request)
+    {
+        var updated = await _issueService.UpdateIssueCommentAsync(
+            projectId,
+            issueId,
+            commentId,
+            request,
+            CurrentUserId
+        );
+
+        if (!updated)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Comment not found",
+                detail: $"Comment with id {commentId} was not found."
+            );
+        }
+
+        return NoContent();
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteIssue(int projectId, int id)
     {

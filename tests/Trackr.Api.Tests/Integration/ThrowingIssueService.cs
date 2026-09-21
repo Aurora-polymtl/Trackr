@@ -67,6 +67,17 @@ public class ThrowingIssueService : IIssueService
         throw new NotImplementedException();
     }
 
+    public Task<bool> UpdateIssueCommentAsync(
+        int projectId,
+        int issueId,
+        int commentId,
+        UpdateIssueCommentRequest request,
+        string userId
+    )
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<bool> DeleteIssueAsync(
         int projectId,
         int id,

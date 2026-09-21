@@ -1,5 +1,3 @@
-using System.Data.Common;
-using System.Net.Mime;
 using Microsoft.EntityFrameworkCore;
 using Trackr.Api.Data;
 using Trackr.Api.Dtos;
@@ -281,6 +279,34 @@ public class IssueService : IIssueService
         await _dbContext.SaveChangesAsync();
 
         return IssueOperationResult.Success;
+    }
+
+    public async Task<bool> UpdateIssueCommentAsync(
+        int projectId,
+        int issueId,
+        int commentId,
+        UpdateIssueCommentRequest request,
+        string userId
+    )
+    {
+        var comment = await _dbContext.IssueComments
+            .FirstOrDefaultAsync(comment =>
+                comment.Id == commentId &&
+                comment.IssueId == issueId &&
+                comment.Issue.ProjectId == projectId &&
+                comment.Issue.Project.UserId == userId &&
+                comment.AuthorId == userId);
+        
+        if (comment is null)
+        {
+            return false;
+        }
+
+        comment.Content = request.Content;
+        comment.UpdatedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync();
+
+        return true;
     }
 
     public async Task<bool> DeleteIssueAsync(int projectId, int id, string userId)

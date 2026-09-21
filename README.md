@@ -85,10 +85,7 @@ The API uses DTOs to separate its public HTTP contract from Entity Framework Cor
 ```http
 GET    /api/projects
 GET    /api/projects/{id}
-GET    /api/projects/{projectId}/issues/{issueId}/comments
-GET    /api/projects/{projectId}/issues/{issueId}/comments/{commentId}
 POST   /api/projects
-POST   /api/projects/{projectId}/issues/{issueId}/comments
 POST   /api/auth/register
 POST   /api/auth/login
 PUT    /api/projects/{id}
@@ -114,6 +111,16 @@ Example:
 ```http
 GET /api/projects/1/issues?status=InProgress&priority=High&search=authentication&sortBy=UpdatedAt&sortDirection=Desc&page=1&pageSize=10
 ```
+
+### Comments
+
+Comments are scoped to an issue.
+
+```http
+GET  /api/projects/{projectId}/issues/{issueId}/comments
+GET  /api/projects/{projectId}/issues/{issueId}/comments/{commentId}
+POST /api/projects/{projectId}/issues/{issueId}/comments
+PUT  /api/projects/{projectId}/issues/{issueId}/comments/{commentId}
 
 ## Getting Started
 
