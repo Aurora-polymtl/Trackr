@@ -327,4 +327,25 @@ public class IssueService : IIssueService
 
         return true;
     }
+
+    public async Task<bool> DeleteIssueCommentAsync(int projectId, int issueId, int commentId, string userId)
+    {
+        var comment = await _dbContext.IssueComments
+            .FirstOrDefaultAsync(comment =>
+            comment.Id == commentId &&
+            comment.IssueId == issueId &&
+            comment.Issue.ProjectId == projectId &&
+            comment.Issue.Project.UserId == userId &&
+            comment.AuthorId == userId);
+
+        if (comment is null)
+        {
+            return false;
+        }
+
+        _dbContext.IssueComments.Remove(comment);
+        await _dbContext.SaveChangesAsync();
+
+        return true;
+    }
 }

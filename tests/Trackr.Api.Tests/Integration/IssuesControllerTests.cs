@@ -639,6 +639,80 @@ public class IssuesControllerTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task DeleteIssueComment_ReturnsNoContent_WhenUserIsAuthor()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
+
+        await SeedIssueAsync(factory, userId);
+
+        var createResponse = await client.PostAsJsonAsync(
+            "/api/projects/1/issues/1/comments",
+            new CreateIssueCommentRequest
+            {
+                Content = "Comment to delete"
+            });
+
+        var comment = await createResponse.Content
+            .ReadFromJsonAsync<IssueCommentResponse>(JsonOptions);
+
+        Assert.NotNull(comment);
+
+        var response = await client.DeleteAsync(
+            $"/api/projects/1/issues/1/comments/{comment.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var getResponse = await client.GetAsync(
+            $"/api/projects/1/issues/1/comments/{comment.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteIssueComment_ReturnsNotFound_WhenIssueBelongsToAnotherUser()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "comment-delete-owner@trackr.com");
+
+        await SeedIssueAsync(factory, ownerId);
+
+        var createResponse = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/issues/1/comments",
+            new CreateIssueCommentRequest
+            {
+                Content = "Private comment"
+            });
+
+        var comment = await createResponse.Content
+            .ReadFromJsonAsync<IssueCommentResponse>(JsonOptions);
+
+        Assert.NotNull(comment);
+
+        var otherClient = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            otherClient,
+            "comment-delete-other@trackr.com");
+
+        var response = await otherClient.DeleteAsync(
+            $"/api/projects/1/issues/1/comments/{comment.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var ownerGetResponse = await ownerClient.GetAsync(
+            $"/api/projects/1/issues/1/comments/{comment.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, ownerGetResponse.StatusCode);
+    }
+
     private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
     {
         using var scope = factory.Services.CreateScope();

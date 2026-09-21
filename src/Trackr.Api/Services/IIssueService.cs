@@ -22,4 +22,5 @@ public interface IIssueService
     Task<IssueOperationResult> UpdateIssueAsync(int projectId, int id, UpdateIssueRequest request, string userId);
     Task<bool> UpdateIssueCommentAsync(int projectId, int issueId, int commentId, UpdateIssueCommentRequest request, string userId);
     Task<bool> DeleteIssueAsync(int projectId, int id, string userId);
+    Task<bool> DeleteIssueCommentAsync(int projectId, int issueId, int commentId, string userId);
 }

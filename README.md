@@ -121,6 +121,7 @@ GET  /api/projects/{projectId}/issues/{issueId}/comments
 GET  /api/projects/{projectId}/issues/{issueId}/comments/{commentId}
 POST /api/projects/{projectId}/issues/{issueId}/comments
 PUT  /api/projects/{projectId}/issues/{issueId}/comments/{commentId}
+DELETE /api/projects/{projectId}/issues/{issueId}/comments/{commentId}
 
 ## Getting Started
 

@@ -251,4 +251,26 @@ public class IssuesController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpDelete("{issueId}/comments/{commentId}")]
+    public async Task<IActionResult> DeleteIssueComment(int projectId, int issueId, int commentId)
+    {
+        var deleted = await _issueService.DeleteIssueCommentAsync(
+            projectId,
+            issueId,
+            commentId,
+            CurrentUserId
+        );
+
+        if (!deleted)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Comment not found",
+                detail: $"Comment with id {commentId} was not found."
+            );
+        }
+
+        return NoContent();
+    }
 }

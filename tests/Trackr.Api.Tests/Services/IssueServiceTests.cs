@@ -1088,6 +1088,58 @@ public class IssueServiceTests
         Assert.Equal(now, comment.UpdatedAt);
     }
 
+    [Fact]
+    public async Task DeleteIssueCommentAsync_ReturnsFalse_WhenUserIsNotAuthor()
+    {
+        await using var dbContext = CreateDbContext();
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.AddRange(
+            new ApplicationUser { Id = TestUserId },
+            new ApplicationUser { Id = OtherUserId });
+
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test project",
+            UserId = TestUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.Issues.Add(new Issue
+        {
+            Id = 1,
+            Title = "Test issue",
+            ProjectId = 1,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.IssueComments.Add(new IssueComment
+        {
+            Id = 1,
+            Content = "Comment by another author",
+            IssueId = 1,
+            AuthorId = OtherUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+
+        var deleted = await service.DeleteIssueCommentAsync(
+            1,
+            1,
+            1,
+            TestUserId);
+
+        Assert.False(deleted);
+        Assert.Single(dbContext.IssueComments);
+    }
+
     private static async Task SeedIssuesAsync(TrackrDbContext dbContext)
     {
         var now = DateTime.UtcNow;
