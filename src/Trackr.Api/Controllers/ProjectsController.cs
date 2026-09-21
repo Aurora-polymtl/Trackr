@@ -53,6 +53,46 @@ public class ProjectsController : ControllerBase
         return CreatedAtAction(nameof(GetProjectById), new { id = project.Id }, project);
     }
 
+    [HttpPost("{id}/members")]
+    public async Task<IActionResult> AddProjectMember(int id, AddProjectMemberRequest request)
+    {
+        var (result, member) = await _projectService.AddProjectMemberAsync(id, request, CurrentUserId);
+
+        if (result == ProjectMemberOperationResult.ProjectNotFound)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Project not found",
+                detail: $"Project with id {id} was not found."
+            );
+        }
+
+        if (result is ProjectMemberOperationResult.UserNotFound or ProjectMemberOperationResult.OwnerCannotBeMember)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid member",
+                detail: "The specified user cannot be added to the project."
+            );
+        }
+
+        if (result == ProjectMemberOperationResult.MemberAlreadyExists)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Member already exists",
+                detail: "The specified user is already a project member."
+            );
+        }
+
+        if (member is null)
+        {
+            throw new InvalidOperationException("Member creation succeeded without returning a member.");
+        }
+
+        return Created($"/api/projects/{id}/members/{member.UserId}", member);
+    }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProject(int id, UpdateProjectRequest request)
     {

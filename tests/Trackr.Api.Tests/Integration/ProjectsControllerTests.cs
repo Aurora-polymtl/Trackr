@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Trackr.Api.Data;
@@ -184,6 +185,114 @@ public class ProjectsControllerTests
 
         Assert.Equal(404, problem.Status);
         Assert.Equal("Project not found", problem.Title);
+    }
+
+    [Fact]
+    public async Task AddProjectMember_ReturnsCreated_WhenRequestIsValid()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "member-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "new-member@trackr.com");
+
+        var response = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/members",
+            new AddProjectMemberRequest
+            {
+                Email = "new-member@trackr.com"
+            });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var member = await response.Content
+            .ReadFromJsonAsync<ProjectMemberResponse>(JsonOptions);
+
+        Assert.NotNull(member);
+        Assert.Equal(memberId, member.UserId);
+        Assert.Equal("new-member@trackr.com", member.Email);
+
+        using var scope = factory.Services.CreateScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<TrackrDbContext>();
+
+        var persistedMember = await dbContext.ProjectMembers.SingleAsync();
+
+        Assert.Equal(1, persistedMember.ProjectId);
+        Assert.Equal(memberId, persistedMember.UserId);
+    }
+
+    [Fact]
+    public async Task AddProjectMember_ReturnsNotFound_WhenUserIsNotOwner()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "project-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var otherClient = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            otherClient,
+            "non-owner@trackr.com");
+
+        var response = await otherClient.PostAsJsonAsync(
+            "/api/projects/1/members",
+            new AddProjectMemberRequest
+            {
+                Email = "project-owner@trackr.com"
+            });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddProjectMember_ReturnsConflict_WhenMemberAlreadyExists()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "duplicate-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "duplicate-member@trackr.com");
+
+        var request = new AddProjectMemberRequest
+        {
+            Email = "duplicate-member@trackr.com"
+        };
+
+        var firstResponse = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/members",
+            request);
+
+        Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+
+        var secondResponse = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/members",
+            request);
+
+        Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
     }
 
     private readonly JsonSerializerOptions JsonOptions = new()

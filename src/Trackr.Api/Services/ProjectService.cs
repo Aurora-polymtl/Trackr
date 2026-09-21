@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using Trackr.Api.Data;
 using Trackr.Api.Models;
 using Trackr.Api.Dtos;
@@ -8,10 +9,12 @@ namespace Trackr.Api.Services;
 public class ProjectService : IProjectService
 {
     private readonly TrackrDbContext _dbContext;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public ProjectService(TrackrDbContext dbContext)
+    public ProjectService(TrackrDbContext dbContext, UserManager<ApplicationUser> userManager)
     {
         _dbContext = dbContext;
+        _userManager = userManager;
     }
 
     public async Task<IEnumerable<ProjectResponse>> GetProjectsAsync(string userId)
@@ -69,6 +72,62 @@ public class ProjectService : IProjectService
             CreatedAt = project.CreatedAt,
             UpdatedAt = project.UpdatedAt
         };
+    }
+
+    public async Task<(ProjectMemberOperationResult Result, ProjectMemberResponse? Member)> AddProjectMemberAsync(
+        int projectId,
+        AddProjectMemberRequest request,
+        string ownerId
+    )
+    {
+        var projectExists = await _dbContext.Projects.AnyAsync(project =>
+            project.Id == projectId &&
+            project.UserId == ownerId);
+        
+        if (!projectExists)
+        {
+            return (ProjectMemberOperationResult.ProjectNotFound, null);
+        }
+
+        var user = await _userManager.FindByEmailAsync(request.Email);
+
+        if (user is null)
+        {
+            return (ProjectMemberOperationResult.UserNotFound, null);
+        }
+
+        if (user.Id == ownerId)
+        {
+            return (ProjectMemberOperationResult.OwnerCannotBeMember, null);
+        }
+
+        var alreadyExists = await _dbContext.ProjectMembers.AnyAsync(member =>
+            member.ProjectId == projectId &&
+            member.UserId == user.Id);
+
+        if (alreadyExists)
+        {
+            return (ProjectMemberOperationResult.MemberAlreadyExists, null);
+        }
+
+        var member = new ProjectMember
+        {
+            ProjectId = projectId,
+            UserId = user.Id,
+            AddedAt = DateTime.UtcNow
+        };
+
+        _dbContext.ProjectMembers.Add(member);
+        await _dbContext.SaveChangesAsync();
+
+        var response = new ProjectMemberResponse
+        {
+            UserId = user.Id,
+            Email = user.Email ?? request.Email,
+            AddedAt = member.AddedAt
+        };
+
+        return (ProjectMemberOperationResult.Success, response);
     }
 
     public async Task<bool> UpdateProjectAsync(int id, UpdateProjectRequest request, string userId)

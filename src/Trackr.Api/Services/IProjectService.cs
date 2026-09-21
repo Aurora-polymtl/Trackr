@@ -14,4 +14,9 @@ public interface IProjectService
     Task<bool> UpdateProjectAsync(int id, UpdateProjectRequest request, string userId);
 
     Task<bool> DeleteProjectAsync(int id, string userId);
+    Task<(ProjectMemberOperationResult Result, ProjectMemberResponse? Member)> AddProjectMemberAsync(
+        int projectId,
+        AddProjectMemberRequest request,
+        string ownerId
+    );
 }
