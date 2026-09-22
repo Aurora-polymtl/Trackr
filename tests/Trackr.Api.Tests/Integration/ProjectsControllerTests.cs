@@ -225,6 +225,19 @@ public class ProjectsControllerTests
         Assert.Equal(memberId, member.UserId);
         Assert.Equal("new-member@trackr.com", member.Email);
 
+        Assert.NotNull(response.Headers.Location);
+
+        var getResponse = await ownerClient.GetAsync(
+            response.Headers.Location);
+
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+
+        var retrievedMember = await getResponse.Content
+            .ReadFromJsonAsync<ProjectMemberResponse>(JsonOptions);
+
+        Assert.NotNull(retrievedMember);
+        Assert.Equal(memberId, retrievedMember.UserId);
+
         using var scope = factory.Services.CreateScope();
 
         var dbContext = scope.ServiceProvider
@@ -480,6 +493,81 @@ public class ProjectsControllerTests
             "/api/projects/1/members");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetProjectMemberById_ReturnsMember_WhenRequesterIsMember()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "member-lookup-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "member-lookup-member@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var response = await memberClient.GetAsync(
+            $"/api/projects/1/members/{memberId}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var member = await response.Content
+            .ReadFromJsonAsync<ProjectMemberResponse>(JsonOptions);
+
+        Assert.NotNull(member);
+        Assert.Equal(memberId, member.UserId);
+        Assert.Equal(
+            "member-lookup-member@trackr.com",
+            member.Email);
+    }
+
+    [Fact]
+    public async Task GetProjectMemberById_ReturnsNotFound_WhenRequesterHasNoAccess()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "private-member-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "private-member-target@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var otherClient = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            otherClient,
+            "private-member-outsider@trackr.com");
+
+        var response = await otherClient.GetAsync(
+            $"/api/projects/1/members/{memberId}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var problem = await response.Content
+            .ReadFromJsonAsync<ProblemDetails>(JsonOptions);
+
+        Assert.NotNull(problem);
+        Assert.Equal("Member not found", problem.Title);
     }
 
     private readonly JsonSerializerOptions JsonOptions = new()

@@ -84,6 +84,26 @@ public class ProjectService : IProjectService
             .ToListAsync();
     }
 
+    public async Task<ProjectMemberResponse?> GetProjectMemberByIdAsync(int projectId, string memberId, string userId)
+    {
+        return await _dbContext.ProjectMembers
+            .Where(member =>
+                member.ProjectId == projectId &&
+                member.UserId == memberId &&
+                (
+                    member.Project.UserId == userId ||
+                    member.Project.Members.Any(projectMember =>
+                        projectMember.UserId == userId)
+                ))
+            .Select(member => new ProjectMemberResponse
+            {
+                UserId = member.UserId,
+                Email = member.User.Email ?? string.Empty,
+                AddedAt = member.AddedAt
+            })
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<ProjectResponse> CreateProjectAsync(CreateProjectRequest request, string userId)
     {
         var now = DateTime.UtcNow;

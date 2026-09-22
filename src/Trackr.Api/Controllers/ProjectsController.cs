@@ -62,6 +62,23 @@ public class ProjectsController : ControllerBase
         return Ok(members);
     }
 
+    [HttpGet("{id}/members/{memberId}")]
+    public async Task<IActionResult> GetProjectMemberById(int id, string memberId)
+    {
+        var member = await _projectService.GetProjectMemberByIdAsync(id, memberId, CurrentUserId);
+
+        if (member is null)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Member not found",
+                detail: "The specified project member was not found."
+            );
+        }
+
+        return Ok(member);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateProject(CreateProjectRequest request)
     {
@@ -107,7 +124,15 @@ public class ProjectsController : ControllerBase
             throw new InvalidOperationException("Member creation succeeded without returning a member.");
         }
 
-        return Created($"/api/projects/{id}/members/{member.UserId}", member);
+        return CreatedAtAction(
+            nameof(GetProjectMemberById),
+            new
+            {
+                id,
+                memberId = member.UserId
+            },
+            member
+        );
     }
 
     [HttpPut("{id}")]
