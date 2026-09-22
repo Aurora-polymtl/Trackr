@@ -20,14 +20,18 @@ public class ProjectService : IProjectService
     public async Task<IEnumerable<ProjectResponse>> GetProjectsAsync(string userId)
     {
         return await _dbContext.Projects
-            .Where(project => project.UserId == userId)
+            .Where(project => 
+                project.UserId == userId ||
+                project.Members.Any(member =>
+                    member.UserId == userId))
             .Select(project => new ProjectResponse
             {
                 Id = project.Id,
                 Name = project.Name,
                 Description = project.Description,
                 CreatedAt = project.CreatedAt,
-                UpdatedAt = project.UpdatedAt
+                UpdatedAt = project.UpdatedAt,
+                IsOwner = project.UserId == userId
             })
             .ToListAsync();
     }
@@ -35,14 +39,20 @@ public class ProjectService : IProjectService
     public async Task<ProjectResponse?> GetProjectByIdAsync(int id, string userId)
     {
         return await _dbContext.Projects
-            .Where(project => project.Id == id && project.UserId == userId)
+            .Where(project => project.Id == id && 
+                (
+                    project.UserId == userId ||
+                    project.Members.Any(member =>
+                        member.UserId == userId)
+                ))
             .Select(project => new ProjectResponse
             {
                 Id = project.Id,
                 Name = project.Name,
                 Description = project.Description,
                 CreatedAt = project.CreatedAt,
-                UpdatedAt = project.UpdatedAt
+                UpdatedAt = project.UpdatedAt,
+                IsOwner = project.UserId == userId
             })
             .FirstOrDefaultAsync();
     }
@@ -70,7 +80,8 @@ public class ProjectService : IProjectService
             Name = project.Name,
             Description = project.Description,
             CreatedAt = project.CreatedAt,
-            UpdatedAt = project.UpdatedAt
+            UpdatedAt = project.UpdatedAt,
+            IsOwner = true
         };
     }
 

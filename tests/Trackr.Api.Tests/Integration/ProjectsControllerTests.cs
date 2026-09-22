@@ -46,6 +46,11 @@ public class ProjectsControllerTests
         var response = await client.GetAsync("/api/projects/1");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var project = await response.Content.ReadFromJsonAsync<ProjectResponse>(JsonOptions);
+
+        Assert.NotNull(project);
+        Assert.True(project.IsOwner);
     }
 
     [Fact]
@@ -293,6 +298,90 @@ public class ProjectsControllerTests
             request);
 
         Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetProjects_ReturnsSharedProject_WhenUserIsMember()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "shared-list-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "shared-list-member@trackr.com");
+
+        var addMemberResponse = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/members",
+            new AddProjectMemberRequest
+            {
+                Email = "shared-list-member@trackr.com"
+            });
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            addMemberResponse.StatusCode);
+
+        var response = await memberClient.GetAsync("/api/projects");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var projects = await response.Content
+            .ReadFromJsonAsync<List<ProjectResponse>>(JsonOptions);
+
+        Assert.NotNull(projects);
+
+        var project = Assert.Single(projects);
+
+        Assert.Equal(1, project.Id);
+        Assert.Equal("Integration test project", project.Name);
+        Assert.False(project.IsOwner);
+    }
+
+    [Fact]
+    public async Task GetProject_ReturnsOk_WhenUserIsMember()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "shared-project-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+
+        await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "shared-project-member@trackr.com");
+
+        await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/members",
+            new AddProjectMemberRequest
+            {
+                Email = "shared-project-member@trackr.com"
+            });
+
+        var response = await memberClient.GetAsync("/api/projects/1");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var project = await response.Content
+            .ReadFromJsonAsync<ProjectResponse>(JsonOptions);
+
+        Assert.NotNull(project);
+        Assert.Equal(1, project.Id);
+        Assert.False(project.IsOwner);
     }
 
     private readonly JsonSerializerOptions JsonOptions = new()

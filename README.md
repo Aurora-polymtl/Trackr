@@ -93,6 +93,9 @@ PUT    /api/projects/{id}
 DELETE /api/projects/{id}
 ```
 
+Project members can view shared project details.
+Only project owners can update, delete, or manage project membership.
+
 ### Issues
 
 Issues are scoped to a project.
