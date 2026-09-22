@@ -713,6 +713,134 @@ public class IssuesControllerTests
         Assert.Equal(HttpStatusCode.OK, ownerGetResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task GetIssues_ReturnsIssues_WhenUserIsProjectMember()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "issue-read-owner@trackr.com");
+
+        await SeedIssueAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "issue-read-member@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var response = await memberClient.GetAsync(
+            "/api/projects/1/issues");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content
+            .ReadFromJsonAsync<PagedResponse<IssueResponse>>(JsonOptions);
+
+        Assert.NotNull(result);
+
+        var issue = Assert.Single(result.Items);
+
+        Assert.Equal(1, issue.Id);
+        Assert.Equal("Integration test issue", issue.Title);
+    }
+
+    [Fact]
+    public async Task ProjectMember_CanReadIssueAndComments()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "content-read-owner@trackr.com");
+
+        await SeedIssueAsync(factory, ownerId);
+
+        var createCommentResponse = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/issues/1/comments",
+            new CreateIssueCommentRequest
+            {
+                Content = "Shared comment"
+            });
+
+        var createdComment = await createCommentResponse.Content
+            .ReadFromJsonAsync<IssueCommentResponse>(JsonOptions);
+
+        Assert.NotNull(createdComment);
+
+        var memberClient = factory.CreateClient();
+
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "content-read-member@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var issueResponse = await memberClient.GetAsync(
+            "/api/projects/1/issues/1");
+
+        Assert.Equal(HttpStatusCode.OK, issueResponse.StatusCode);
+
+        var commentsResponse = await memberClient.GetAsync(
+            "/api/projects/1/issues/1/comments");
+
+        Assert.Equal(HttpStatusCode.OK, commentsResponse.StatusCode);
+
+        var comments = await commentsResponse.Content
+            .ReadFromJsonAsync<List<IssueCommentResponse>>(JsonOptions);
+
+        Assert.NotNull(comments);
+
+        var comment = Assert.Single(comments);
+
+        Assert.Equal("Shared comment", comment.Content);
+
+        var commentResponse = await memberClient.GetAsync(
+            $"/api/projects/1/issues/1/comments/{createdComment.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, commentResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateIssue_ReturnsNotFound_WhenUserIsOnlyProjectMember()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "readonly-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "readonly-member@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var response = await memberClient.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            new CreateIssueRequest
+            {
+                Title = "Unauthorized issue",
+                Description = "Members currently have read-only access",
+                Priority = IssuePriority.Medium
+            });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
     {
         using var scope = factory.Services.CreateScope();
@@ -752,6 +880,26 @@ public class IssuesControllerTests
             ProjectId = 1,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task SeedProjectMemberAsync(
+        TrackrApiFactory factory,
+        int projectId,
+        string userId)
+    {
+        using var scope = factory.Services.CreateScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<TrackrDbContext>();
+
+        dbContext.ProjectMembers.Add(new ProjectMember
+        {
+            ProjectId = projectId,
+            UserId = userId,
+            AddedAt = DateTime.UtcNow
         });
 
         await dbContext.SaveChangesAsync();

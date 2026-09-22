@@ -22,7 +22,11 @@ public class IssueService : IIssueService
     {
         var projectExists = await _dbContext.Projects.AnyAsync(project =>
             project.Id == projectId &&
-            project.UserId == userId);
+            (
+                project.UserId == userId ||
+                project.Members.Any(member =>
+                    member.UserId == userId)
+            ));
 
         if (!projectExists)
         {
@@ -116,7 +120,11 @@ public class IssueService : IIssueService
             .Where(issue =>
                 issue.Id == id &&
                 issue.ProjectId == projectId &&
-                issue.Project.UserId == userId)
+                (
+                    issue.Project.UserId == userId ||
+                    issue.Project.Members.Any(member =>
+                        member.UserId == userId)
+                ))
             .Select(issue => new IssueResponse
             {
                 Id = issue.Id,
@@ -135,9 +143,13 @@ public class IssueService : IIssueService
     public async Task<IReadOnlyList<IssueCommentResponse>?> GetIssueCommentsAsync(int projectId, int issueId, string userId)
     {
         var issueExists = await _dbContext.Issues.AnyAsync(issue => 
-        issue.Id == issueId &&
-        issue.ProjectId == projectId &&
-        issue.Project.UserId == userId);
+            issue.Id == issueId &&
+            issue.ProjectId == projectId &&
+            (
+                issue.Project.UserId == userId ||
+                issue.Project.Members.Any(member =>
+                    member.UserId == userId)
+            ));
 
         if (!issueExists)
         {
@@ -167,7 +179,11 @@ public class IssueService : IIssueService
                 comment.Id == commentId &&
                 comment.IssueId == issueId &&
                 comment.Issue.ProjectId == projectId &&
-                comment.Issue.Project.UserId == userId)
+                (
+                    comment.Issue.Project.UserId == userId ||
+                    comment.Issue.Project.Members.Any(member =>
+                        member.UserId == userId)
+                ))
             .Select(comment => new IssueCommentResponse
             {
                 Id = comment.Id,

@@ -93,8 +93,8 @@ PUT    /api/projects/{id}
 DELETE /api/projects/{id}
 ```
 
-Project members can view shared project details.
-Only project owners can update, delete, or manage project membership.
+Project members can view shared projects, issues, and comments.
+Only project owners can modify projects and issues or manage membership.
 
 ### Issues
 
