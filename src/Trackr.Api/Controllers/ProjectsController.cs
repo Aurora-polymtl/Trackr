@@ -45,6 +45,23 @@ public class ProjectsController : ControllerBase
         return Ok(project);
     }
 
+    [HttpGet("{id}/members")]
+    public async Task<IActionResult> GetProjectMembers(int id)
+    {
+        var members = await _projectService.GetProjectMembersAsync(id, CurrentUserId);
+
+        if (members is null)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Project not found",
+                detail: $"Project with id {id} was not found."
+            );
+        }
+
+        return Ok(members);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateProject(CreateProjectRequest request)
     {

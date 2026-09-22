@@ -9,6 +9,8 @@ public interface IProjectService
 
     Task<ProjectResponse?> GetProjectByIdAsync(int id, string userId);
 
+    Task<IReadOnlyList<ProjectMemberResponse>?> GetProjectMembersAsync(int projectId, string userId);
+
     Task<ProjectResponse> CreateProjectAsync(CreateProjectRequest request, string userId);
 
     Task<bool> UpdateProjectAsync(int id, UpdateProjectRequest request, string userId);

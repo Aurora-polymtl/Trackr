@@ -85,6 +85,7 @@ The API uses DTOs to separate its public HTTP contract from Entity Framework Cor
 ```http
 GET    /api/projects
 GET    /api/projects/{id}
+GET    /api/projects/{id}/members
 POST   /api/projects
 POST   /api/projects/{id}/members
 POST   /api/auth/register
