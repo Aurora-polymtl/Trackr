@@ -841,6 +841,144 @@ public class IssuesControllerTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task ProjectMember_CanManageOwnComment()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "member-comment-owner@trackr.com");
+
+        await SeedIssueAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "member-comment-author@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var createResponse = await memberClient.PostAsJsonAsync(
+            "/api/projects/1/issues/1/comments",
+            new CreateIssueCommentRequest
+            {
+                Content = "Original member comment"
+            });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        var comment = await createResponse.Content
+            .ReadFromJsonAsync<IssueCommentResponse>(JsonOptions);
+
+        Assert.NotNull(comment);
+        Assert.Equal(memberId, comment.AuthorId);
+
+        var updateResponse = await memberClient.PutAsJsonAsync(
+            $"/api/projects/1/issues/1/comments/{comment.Id}",
+            new UpdateIssueCommentRequest
+            {
+                Content = "Updated member comment"
+            });
+
+        Assert.Equal(
+            HttpStatusCode.NoContent,
+            updateResponse.StatusCode);
+
+        var getResponse = await memberClient.GetAsync(
+            $"/api/projects/1/issues/1/comments/{comment.Id}");
+
+        var updatedComment = await getResponse.Content
+            .ReadFromJsonAsync<IssueCommentResponse>(JsonOptions);
+
+        Assert.NotNull(updatedComment);
+        Assert.Equal(
+            "Updated member comment",
+            updatedComment.Content);
+
+        var deleteResponse = await memberClient.DeleteAsync(
+            $"/api/projects/1/issues/1/comments/{comment.Id}");
+
+        Assert.Equal(
+            HttpStatusCode.NoContent,
+            deleteResponse.StatusCode);
+
+        var deletedCommentResponse = await memberClient.GetAsync(
+            $"/api/projects/1/issues/1/comments/{comment.Id}");
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            deletedCommentResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProjectOwner_CannotModifyOrDeleteMemberComment()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "protected-comment-owner@trackr.com");
+
+        await SeedIssueAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "protected-comment-member@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var createResponse = await memberClient.PostAsJsonAsync(
+            "/api/projects/1/issues/1/comments",
+            new CreateIssueCommentRequest
+            {
+                Content = "Member-owned comment"
+            });
+
+        var comment = await createResponse.Content
+            .ReadFromJsonAsync<IssueCommentResponse>(JsonOptions);
+
+        Assert.NotNull(comment);
+
+        var updateResponse = await ownerClient.PutAsJsonAsync(
+            $"/api/projects/1/issues/1/comments/{comment.Id}",
+            new UpdateIssueCommentRequest
+            {
+                Content = "Owner update attempt"
+            });
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            updateResponse.StatusCode);
+
+        var deleteResponse = await ownerClient.DeleteAsync(
+            $"/api/projects/1/issues/1/comments/{comment.Id}");
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            deleteResponse.StatusCode);
+
+        var getResponse = await memberClient.GetAsync(
+            $"/api/projects/1/issues/1/comments/{comment.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+
+        var persistedComment = await getResponse.Content
+            .ReadFromJsonAsync<IssueCommentResponse>(JsonOptions);
+
+        Assert.NotNull(persistedComment);
+        Assert.Equal(
+            "Member-owned comment",
+            persistedComment.Content);
+    }
+
     private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
     {
         using var scope = factory.Services.CreateScope();

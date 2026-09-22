@@ -142,7 +142,7 @@ public class IssueService : IIssueService
 
     public async Task<IReadOnlyList<IssueCommentResponse>?> GetIssueCommentsAsync(int projectId, int issueId, string userId)
     {
-        var issueExists = await _dbContext.Issues.AnyAsync(issue => 
+        var issueExists = await _dbContext.Issues.AnyAsync(issue =>
             issue.Id == issueId &&
             issue.ProjectId == projectId &&
             (
@@ -175,7 +175,7 @@ public class IssueService : IIssueService
     public async Task<IssueCommentResponse?> GetIssueCommentByIdAsync(int projectId, int issueId, int commentId, string userId)
     {
         return await _dbContext.IssueComments
-            .Where(comment => 
+            .Where(comment =>
                 comment.Id == commentId &&
                 comment.IssueId == issueId &&
                 comment.Issue.ProjectId == projectId &&
@@ -197,8 +197,8 @@ public class IssueService : IIssueService
     }
 
     public async Task<(IssueOperationResult Result, Issue? Issue)> CreateIssueAsync(
-        int projectId, 
-        CreateIssueRequest request, 
+        int projectId,
+        CreateIssueRequest request,
         string userId)
     {
         var projectExists = await _dbContext.Projects
@@ -244,9 +244,13 @@ public class IssueService : IIssueService
     )
     {
         var issueExists = await _dbContext.Issues.AnyAsync(issue =>
-        issue.Id == issueId &&
-        issue.ProjectId == projectId &&
-        issue.Project.UserId == userId);
+            issue.Id == issueId &&
+            issue.ProjectId == projectId &&
+            (
+                issue.Project.UserId == userId ||
+                issue.Project.Members.Any(member =>
+                    member.UserId == userId)
+            ));
         if (!issueExists)
         {
             return (IssueOperationResult.IssueNotFound, null);
@@ -310,9 +314,13 @@ public class IssueService : IIssueService
                 comment.Id == commentId &&
                 comment.IssueId == issueId &&
                 comment.Issue.ProjectId == projectId &&
-                comment.Issue.Project.UserId == userId &&
-                comment.AuthorId == userId);
-        
+                comment.AuthorId == userId &&
+                (
+                    comment.Issue.Project.UserId == userId ||
+                    comment.Issue.Project.Members.Any(member =>
+                        member.UserId == userId)
+                ));
+
         if (comment is null)
         {
             return false;
@@ -346,13 +354,16 @@ public class IssueService : IIssueService
 
     public async Task<bool> DeleteIssueCommentAsync(int projectId, int issueId, int commentId, string userId)
     {
-        var comment = await _dbContext.IssueComments
-            .FirstOrDefaultAsync(comment =>
+        var comment = await _dbContext.IssueComments.FirstOrDefaultAsync(comment =>
             comment.Id == commentId &&
             comment.IssueId == issueId &&
             comment.Issue.ProjectId == projectId &&
-            comment.Issue.Project.UserId == userId &&
-            comment.AuthorId == userId);
+            comment.AuthorId == userId &&
+            (
+                comment.Issue.Project.UserId == userId ||
+                comment.Issue.Project.Members.Any(member =>
+                    member.UserId == userId)
+            ));
 
         if (comment is null)
         {
