@@ -98,6 +98,7 @@ DELETE /api/projects/{id}/members/{memberId}
 Project members can view shared projects and issues, and create comments.
 Comment authors can update and delete their own comments.
 Only project owners can modify projects and issues or manage membership.
+Project owners can assign issues to themselves or to project members.
 
 ### Issues
 

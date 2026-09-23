@@ -240,6 +240,20 @@ public class ProjectService : IProjectService
             return false;
         }
 
+        var assignedIssues = await _dbContext.Issues
+            .Where(issue =>
+                issue.ProjectId == projectId &&
+                issue.AssigneeId == memberId)
+            .ToListAsync();
+
+        var now = DateTime.UtcNow;
+
+        foreach (var issue in assignedIssues)
+        {
+            issue.AssigneeId = null;
+            issue.UpdatedAt = now;
+        }
+
         _dbContext.ProjectMembers.Remove(member);
         await _dbContext.SaveChangesAsync();
 

@@ -211,7 +211,8 @@ public class IssueService : IIssueService
             return (IssueOperationResult.ProjectNotFound, null);
         }
 
-        if (request.AssigneeId is not null && request.AssigneeId != userId)
+        if (request.AssigneeId is not null && 
+            !await IsValidAssigneeAsync(projectId, request.AssigneeId))
         {
             return (IssueOperationResult.InvalidAssignee, null);
         }
@@ -284,7 +285,8 @@ public class IssueService : IIssueService
             return IssueOperationResult.IssueNotFound;
         }
 
-        if (request.AssigneeId is not null && request.AssigneeId != userId)
+        if (request.AssigneeId is not null && 
+            !await IsValidAssigneeAsync(projectId, request.AssigneeId))
         {
             return IssueOperationResult.InvalidAssignee;
         }
@@ -374,5 +376,16 @@ public class IssueService : IIssueService
         await _dbContext.SaveChangesAsync();
 
         return true;
+    }
+
+    private async Task<bool> IsValidAssigneeAsync(int projectId, string assigneeId)
+    {
+        return await _dbContext.Projects.AnyAsync(project =>
+            project.Id == projectId &&
+            (
+                project.UserId == assigneeId ||
+                project.Members.Any(member =>
+                    member.UserId == assigneeId)
+            ));
     }
 }

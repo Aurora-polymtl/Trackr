@@ -244,7 +244,7 @@ public class IssuesControllerTests
         Assert.Equal("Invalid assignee", problem.Title);
 
         Assert.Equal(
-            "The issue can only be assigned to the current user.",
+            "The issue can only be assigned to the project owner or a project member.",
             problem.Detail);
     }
 
@@ -286,6 +286,54 @@ public class IssuesControllerTests
 
         Assert.NotNull(issue);
         Assert.Equal(userId, issue.AssigneeId);
+    }
+
+    [Fact]
+    public async Task CreateIssue_ReturnsAssignee_WhenAssignedToProjectMember()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var client = factory.CreateClient();
+
+        var userId =
+            await AuthenticationHelper.AuthenticateAsync(
+                client,
+                "assigned@trackr.com");
+
+        await SeedProjectAsync(
+            factory,
+            userId);
+
+        var memberClient = factory.CreateClient();
+
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "assigned-member@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var request = new CreateIssueRequest
+        {
+            Title = "Assigned issue",
+            Description = "Assigned to myself",
+            Priority = IssuePriority.High,
+            AssigneeId = memberId
+        };
+
+        var response = await client.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            request);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            response.StatusCode);
+
+        var issue = await response.Content
+            .ReadFromJsonAsync<IssueResponse>(
+                JsonOptions);
+
+        Assert.NotNull(issue);
+        Assert.Equal(memberId, issue.AssigneeId);
     }
 
     [Fact]
@@ -343,7 +391,7 @@ public class IssuesControllerTests
         Assert.NotNull(problem);
         Assert.Equal(400, problem.Status);
         Assert.Equal("Invalid assignee", problem.Title);
-        Assert.Equal("The issue can only be assigned to the current user.", problem.Detail);
+        Assert.Equal("The issue can only be assigned to the project owner or a project member.", problem.Detail);
     }
 
     [Fact]

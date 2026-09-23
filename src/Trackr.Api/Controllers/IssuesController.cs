@@ -109,7 +109,8 @@ public class IssuesController : ControllerBase
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
                 title: "Invalid assignee",
-                detail: "The issue can only be assigned to the current user.");
+                detail: "The issue can only be assigned to the project owner or a project member."
+            );
         }
 
         if (issue is null)
@@ -200,7 +201,7 @@ public class IssuesController : ControllerBase
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
                 title: "Invalid assignee",
-                detail: "The issue can only be assigned to the current user."
+                detail: "The issue can only be assigned to the project owner or a project member."
             );
         }
 
