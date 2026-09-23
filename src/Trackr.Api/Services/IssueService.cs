@@ -303,6 +303,33 @@ public class IssueService : IIssueService
         return IssueOperationResult.Success;
     }
 
+    public async Task<IssueOperationResult> UpdateIssueStatusAsync(int projectId, int id, IssueStatus status, string userId)
+    {
+        var issue = await _dbContext.Issues
+            .FirstOrDefaultAsync(issue => 
+                issue.Id == id &&
+                issue.ProjectId == projectId &&
+                (
+                    issue.Project.UserId == userId || (
+                        issue.AssigneeId == userId &&
+                        issue.Project.Members.Any(member =>
+                            member.UserId == userId)
+                    )
+                ));
+
+        if (issue is null)
+        {
+            return IssueOperationResult.IssueNotFound;
+        }
+
+        issue.Status = status;
+        issue.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        return IssueOperationResult.Success;
+    }
+
     public async Task<bool> UpdateIssueCommentAsync(
         int projectId,
         int issueId,

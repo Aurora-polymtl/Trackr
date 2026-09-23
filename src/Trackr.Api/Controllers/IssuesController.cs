@@ -213,6 +213,19 @@ public class IssuesController : ControllerBase
         return NoContent();
     }
 
+    [HttpPut("{id}/status")]
+    public async Task<IActionResult> UpdateIssueStatus(int projectId, int id, UpdateIssueStatusRequest request)
+    {
+        var result = await _issueService.UpdateIssueStatusAsync(projectId, id, request.Status, CurrentUserId);
+
+        if (result != IssueOperationResult.Success)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
+
     [HttpPut("{issueId}/comments/{commentId}")]
     public async Task<IActionResult> UpdateIssueComment(
         int projectId, 
