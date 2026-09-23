@@ -1,5 +1,5 @@
 @host = http://localhost:5257
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhOTc1MjcyYS1hNTk1LTRkYTMtOTIxMi05OTA5MGViYjk5Y2IiLCJlbWFpbCI6InRlc3RAdHJhY2tyLmNvbSIsImV4cCI6MTc4OTA2MzI0NSwiaXNzIjoiVHJhY2tyLkFwaSIsImF1ZCI6IlRyYWNrci5DbGllbnQifQ.VHio-IUzUz2bL1FSA6oDg9tTTQ2BkIbBwc2CzeWDSLY
+@token = REPLACE_WITH_LOCAL_JWT
 
 GET {{host}}/api/projects
 Accept: application/json
@@ -252,6 +252,16 @@ Content-Type: application/json
   "description": "Verify that UpdatedAt changes.",
   "status": "InProgress",
   "priority": "High"
+}
+
+###
+
+PUT {{host}}/api/projects/2/issues/1/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "InProgress"
 }
 
 ###

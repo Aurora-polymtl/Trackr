@@ -97,7 +97,7 @@ DELETE /api/projects/{id}/members/{memberId}
 
 Project members can view shared projects and issues, and create comments.
 Comment authors can update and delete their own comments.
-Only project owners can modify projects and issues or manage membership.
+Only project owners can modify project details, manage membership, and fully edit or delete issues.
 Project owners can assign issues to themselves or to project members.
 Project owners and assigned project members can update issue status.
 
@@ -110,6 +110,7 @@ GET    /api/projects/{projectId}/issues
 GET    /api/projects/{projectId}/issues/{id}
 POST   /api/projects/{projectId}/issues
 PUT    /api/projects/{projectId}/issues/{id}
+PUT    /api/projects/{projectId}/issues/{id}/status
 DELETE /api/projects/{projectId}/issues/{id}
 ```
 

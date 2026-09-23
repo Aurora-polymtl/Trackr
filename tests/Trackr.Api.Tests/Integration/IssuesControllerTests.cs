@@ -1027,6 +1027,130 @@ public class IssuesControllerTests
             persistedComment.Content);
     }
 
+    [Fact]
+    public async Task UpdateIssueStatus_AllowsAssignee_AndRevokesAccessWhenRemoved()
+    {
+        await using var factory = new TrackrApiFactory();
+        var ownerClient = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient, "status-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient, "status-member@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var createResponse = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            new CreateIssueRequest
+            {
+                Title = "Assigned issue",
+                Description = "Keep this description",
+                Priority = IssuePriority.High,
+                AssigneeId = memberId
+            });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content
+            .ReadFromJsonAsync<IssueResponse>(JsonOptions);
+        Assert.NotNull(created);
+
+        var issueUrl = $"/api/projects/1/issues/{created.Id}";
+
+        var memberUpdate = await memberClient.PutAsJsonAsync(
+            $"{issueUrl}/status",
+            new UpdateIssueStatusRequest { Status = IssueStatus.InProgress },
+            JsonOptions);
+
+        Assert.Equal(HttpStatusCode.NoContent, memberUpdate.StatusCode);
+
+        var updated = await ownerClient.GetFromJsonAsync<IssueResponse>(
+            issueUrl, JsonOptions);
+        Assert.NotNull(updated);
+        Assert.Equal(IssueStatus.InProgress, updated.Status);
+        Assert.Equal("Assigned issue", updated.Title);
+        Assert.Equal("Keep this description", updated.Description);
+        Assert.Equal(IssuePriority.High, updated.Priority);
+        Assert.Equal(memberId, updated.AssigneeId);
+
+        var removal = await ownerClient.DeleteAsync(
+            $"/api/projects/1/members/{memberId}");
+        Assert.Equal(HttpStatusCode.NoContent, removal.StatusCode);
+
+        var afterRemoval = await ownerClient.GetFromJsonAsync<IssueResponse>(
+            issueUrl, JsonOptions);
+        Assert.NotNull(afterRemoval);
+        Assert.Null(afterRemoval.AssigneeId);
+
+        var formerMemberUpdate = await memberClient.PutAsJsonAsync(
+            $"{issueUrl}/status",
+            new UpdateIssueStatusRequest { Status = IssueStatus.Done },
+            JsonOptions);
+        Assert.Equal(HttpStatusCode.NotFound, formerMemberUpdate.StatusCode);
+
+        var ownerUpdate = await ownerClient.PutAsJsonAsync(
+            $"{issueUrl}/status",
+            new UpdateIssueStatusRequest { Status = IssueStatus.Done },
+            JsonOptions);
+        Assert.Equal(HttpStatusCode.NoContent, ownerUpdate.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateIssueStatus_ReturnsNotFound_WhenMemberIsNotAssignee()
+    {
+        await using var factory = new TrackrApiFactory();
+        var ownerClient = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient, "unassigned-owner@trackr.com");
+
+        await SeedIssueAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient, "unassigned-member@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var response = await memberClient.PutAsJsonAsync(
+            "/api/projects/1/issues/1/status",
+            new UpdateIssueStatusRequest { Status = IssueStatus.Done },
+            JsonOptions);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var issue = await ownerClient.GetFromJsonAsync<IssueResponse>(
+            "/api/projects/1/issues/1", JsonOptions);
+        Assert.NotNull(issue);
+        Assert.Equal(IssueStatus.Backlog, issue.Status);
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("{\"status\":999}")]
+    public async Task UpdateIssueStatus_ReturnsBadRequest_WhenStatusIsInvalid(
+    string json)
+    {
+        await using var factory = new TrackrApiFactory();
+        var client = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(client);
+
+        await SeedIssueAsync(factory, ownerId);
+
+        using var content = new StringContent(
+            json,
+            System.Text.Encoding.UTF8,
+            "application/json");
+
+        var response = await client.PutAsync(
+            "/api/projects/1/issues/1/status",
+            content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
     {
         using var scope = factory.Services.CreateScope();
