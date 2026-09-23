@@ -166,4 +166,21 @@ public class ProjectsController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpDelete("{id}/members/{memberId}")]
+    public async Task<IActionResult> RemoveProjectMember(int id, string memberId)
+    {
+        var removed = await _projectService.RemoveProjectMemberAsync(id, memberId, CurrentUserId);
+
+        if (!removed)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Member not found",
+                detail: "The specified project member was not found."
+            );
+        }
+
+        return NoContent();
+    }
 }

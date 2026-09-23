@@ -44,8 +44,7 @@ The API currently supports:
 * ASP.NET Core
 * Entity Framework Core
 * LINQ
-```markdown
-- xUnit
+* xUnit
 
 ### Database
 
@@ -93,6 +92,7 @@ POST   /api/auth/register
 POST   /api/auth/login
 PUT    /api/projects/{id}
 DELETE /api/projects/{id}
+DELETE /api/projects/{id}/members/{memberId}
 ```
 
 Project members can view shared projects and issues, and create comments.
@@ -184,6 +184,7 @@ Run all tests from the repository root:
 
 ```bash
 dotnet test
+```
 
 ## Project Structure
 

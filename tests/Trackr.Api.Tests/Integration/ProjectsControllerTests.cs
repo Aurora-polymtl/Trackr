@@ -570,6 +570,113 @@ public class ProjectsControllerTests
         Assert.Equal("Member not found", problem.Title);
     }
 
+    [Fact]
+    public async Task RemoveProjectMember_ReturnsNoContent_WhenUserIsOwner()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "remove-member-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "remove-member-target@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var projectBeforeRemoval = await memberClient.GetAsync(
+            "/api/projects/1");
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            projectBeforeRemoval.StatusCode);
+
+        var response = await ownerClient.DeleteAsync(
+            $"/api/projects/1/members/{memberId}");
+
+        Assert.Equal(
+            HttpStatusCode.NoContent,
+            response.StatusCode);
+
+        var projectAfterRemoval = await memberClient.GetAsync(
+            "/api/projects/1");
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            projectAfterRemoval.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<TrackrDbContext>();
+
+        Assert.Empty(dbContext.ProjectMembers);
+    }
+
+    [Fact]
+    public async Task RemoveProjectMember_ReturnsNotFound_WhenUserIsNotOwner()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "protected-membership-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient,
+            "protected-membership-member@trackr.com");
+
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var response = await memberClient.DeleteAsync(
+            $"/api/projects/1/members/{memberId}");
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            response.StatusCode);
+
+        var projectResponse = await memberClient.GetAsync(
+            "/api/projects/1");
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            projectResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task RemoveProjectMember_ReturnsNotFound_WhenMemberDoesNotExist()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient,
+            "missing-member-owner@trackr.com");
+
+        await SeedProjectAsync(factory, ownerId);
+
+        var response = await ownerClient.DeleteAsync(
+            "/api/projects/1/members/missing-user-id");
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            response.StatusCode);
+    }
+
     private readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true

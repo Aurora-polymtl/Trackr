@@ -11,16 +11,19 @@ public interface IProjectService
 
     Task<IReadOnlyList<ProjectMemberResponse>?> GetProjectMembersAsync(int projectId, string userId);
 
-    Task<ProjectMemberResponse?> GetProjectMemberByIdAsync(int projcetId, string memberId, string userId);
+    Task<ProjectMemberResponse?> GetProjectMemberByIdAsync(int projectId, string memberId, string userId);
 
     Task<ProjectResponse> CreateProjectAsync(CreateProjectRequest request, string userId);
 
-    Task<bool> UpdateProjectAsync(int id, UpdateProjectRequest request, string userId);
-
-    Task<bool> DeleteProjectAsync(int id, string userId);
     Task<(ProjectMemberOperationResult Result, ProjectMemberResponse? Member)> AddProjectMemberAsync(
         int projectId,
         AddProjectMemberRequest request,
         string ownerId
     );
+
+    Task<bool> UpdateProjectAsync(int id, UpdateProjectRequest request, string userId);
+
+    Task<bool> DeleteProjectAsync(int id, string userId);
+
+    Task<bool> RemoveProjectMemberAsync(int projectId, string memberId, string ownerId);
 }

@@ -226,4 +226,23 @@ public class ProjectService : IProjectService
 
         return true;
     }
+
+    public async Task<bool> RemoveProjectMemberAsync(int projectId, string memberId, string ownerId)
+    {
+        var member = await _dbContext.ProjectMembers
+            .FirstOrDefaultAsync(member =>
+                member.ProjectId == projectId &&
+                member.UserId == memberId &&
+                member.Project.UserId == ownerId);
+
+        if (member is null)
+        {
+            return false;
+        }
+
+        _dbContext.ProjectMembers.Remove(member);
+        await _dbContext.SaveChangesAsync();
+
+        return true;
+    }
 }
