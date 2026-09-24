@@ -57,6 +57,41 @@ public class ProjectService : IProjectService
             .FirstOrDefaultAsync();
     }
 
+    public async Task<ProjectIssueSummaryResponse?> GetProjectIssueSummaryAsync(int projectId, string userId)
+    {
+        var projectIsAccessible = await _dbContext.Projects.AnyAsync(project =>
+            project.Id == projectId &&
+            (
+                project.UserId == userId ||
+                project.Members.Any(member => member.UserId == userId)
+            ));
+
+        if (!projectIsAccessible)
+        {
+            return null;
+        }
+
+        var counts = await _dbContext.Issues
+            .Where(issue => issue.ProjectId == projectId)
+            .GroupBy(issue => issue.Status)
+            .Select(group => new
+            {
+                Status = group.Key, Count = group.Count()
+            })
+            .ToDictionaryAsync(row => row.Status, row => row.Count);
+        
+        return new ProjectIssueSummaryResponse
+        {
+            ProjectId = projectId,
+            TotalIssues = counts.Values.Sum(),
+            BacklogCount = counts.GetValueOrDefault(IssueStatus.Backlog),
+            TodoCount = counts.GetValueOrDefault(IssueStatus.Todo),
+            InProgressCount = counts.GetValueOrDefault(IssueStatus.InProgress),
+            ReviewCount = counts.GetValueOrDefault(IssueStatus.Review),
+            DoneCount = counts.GetValueOrDefault(IssueStatus.Done)
+        };
+    }
+
     public async Task<IReadOnlyList<ProjectMemberResponse>?> GetProjectMembersAsync(int projectId, string userId)
     {
         var projectIsAccessible = await _dbContext.Projects.AnyAsync(project =>

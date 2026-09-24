@@ -81,6 +81,12 @@ Content-Type: application/json
 
 ###
 
+GET {{host}}/api/projects/2/summary
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+
 DELETE {{host}}/api/projects/1
 
 ###

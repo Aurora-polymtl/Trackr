@@ -9,6 +9,8 @@ public interface IProjectService
 
     Task<ProjectResponse?> GetProjectByIdAsync(int id, string userId);
 
+    Task<ProjectIssueSummaryResponse?> GetProjectIssueSummaryAsync(int projectId, string userId);
+
     Task<IReadOnlyList<ProjectMemberResponse>?> GetProjectMembersAsync(int projectId, string userId);
 
     Task<ProjectMemberResponse?> GetProjectMemberByIdAsync(int projectId, string memberId, string userId);

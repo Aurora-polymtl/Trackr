@@ -45,6 +45,23 @@ public class ProjectsController : ControllerBase
         return Ok(project);
     }
 
+    [HttpGet("{id}/summary")]
+    public async Task<IActionResult> GetProjectIssueSummary(int id)
+    {
+        var summary = await _projectService.GetProjectIssueSummaryAsync(id, CurrentUserId);
+
+        if (summary is null)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Project not found",
+                detail: $"Project with id {id} was not found."
+            );
+        }
+
+        return Ok(summary);
+    }
+
     [HttpGet("{id}/members")]
     public async Task<IActionResult> GetProjectMembers(int id)
     {

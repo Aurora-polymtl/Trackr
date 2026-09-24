@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -677,9 +678,85 @@ public class ProjectsControllerTests
             response.StatusCode);
     }
 
+    [Fact]
+    public async Task GetProjectIssueSummary_ReturnsCountsForOwnerAndMember()
+    {
+        await using var factory = new TrackrApiFactory();
+        var ownerClient = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient, "summary-owner@trackr.com");
+        await SeedProjectAsync(factory, ownerId);
+
+        var empty = await ownerClient.GetFromJsonAsync<ProjectIssueSummaryResponse>(
+            "/api/projects/1/summary", JsonOptions);
+        Assert.NotNull(empty);
+        Assert.Equal(0, empty.TotalIssues);
+
+        var memberClient = factory.CreateClient();
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient, "summary-member@trackr.com");
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var first = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            new CreateIssueRequest { Title = "Backlog issue" });
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+
+        var second = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            new CreateIssueRequest { Title = "Done issue" });
+        Assert.Equal(HttpStatusCode.Created, second.StatusCode);
+
+        var secondIssue = await second.Content
+            .ReadFromJsonAsync<IssueResponse>(JsonOptions);
+        Assert.NotNull(secondIssue);
+
+        var update = await ownerClient.PutAsJsonAsync(
+            $"/api/projects/1/issues/{secondIssue.Id}/status",
+            new UpdateIssueStatusRequest { Status = IssueStatus.Done },
+            JsonOptions);
+        Assert.Equal(HttpStatusCode.NoContent, update.StatusCode);
+
+        foreach (var client in new[] { ownerClient, memberClient })
+        {
+            var response = await client.GetAsync("/api/projects/1/summary");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var summary = await response.Content
+                .ReadFromJsonAsync<ProjectIssueSummaryResponse>(JsonOptions);
+            Assert.NotNull(summary);
+            Assert.Equal(1, summary.ProjectId);
+            Assert.Equal(2, summary.TotalIssues);
+            Assert.Equal(1, summary.BacklogCount);
+            Assert.Equal(0, summary.TodoCount);
+            Assert.Equal(0, summary.InProgressCount);
+            Assert.Equal(0, summary.ReviewCount);
+            Assert.Equal(1, summary.DoneCount);
+        }
+    }
+
+    [Fact]
+    public async Task GetProjectIssueSummary_ReturnsNotFound_WhenUserHasNoAccess()
+    {
+        await using var factory = new TrackrApiFactory();
+        var ownerClient = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient, "private-summary-owner@trackr.com");
+        await SeedProjectAsync(factory, ownerId);
+
+        var otherClient = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(
+            otherClient, "private-summary-other@trackr.com");
+
+        var response = await otherClient.GetAsync("/api/projects/1/summary");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
