@@ -62,7 +62,7 @@ public class IssueService : IIssueService
         var totalCount = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalCount / (double)queryParameters.PageSize);
 
-        query = queryParameters.SortBy switch
+        var orderedQuery = queryParameters.SortBy switch
         {
             IssueSortBy.UpdatedAt =>
                 queryParameters.SortDirection == SortDirection.Asc
@@ -92,7 +92,8 @@ public class IssueService : IIssueService
                     : query.OrderByDescending(issue => issue.CreatedAt)
         };
 
-        var items = await query
+        var items = await orderedQuery
+            .ThenBy(issue => issue.Id)
             .Skip((queryParameters.Page - 1) * queryParameters.PageSize)
             .Take(queryParameters.PageSize)
             .Select(issue => new IssueResponse

@@ -287,6 +287,72 @@ public class IssueServiceTests
         );
     }
 
+    [Theory]
+    [InlineData(IssueSortBy.CreatedAt, SortDirection.Asc)]
+    [InlineData(IssueSortBy.CreatedAt, SortDirection.Desc)]
+    [InlineData(IssueSortBy.UpdatedAt, SortDirection.Asc)]
+    [InlineData(IssueSortBy.UpdatedAt, SortDirection.Desc)]
+    [InlineData(IssueSortBy.Priority, SortDirection.Asc)]
+    [InlineData(IssueSortBy.Priority, SortDirection.Desc)]
+    [InlineData(IssueSortBy.Status, SortDirection.Asc)]
+    [InlineData(IssueSortBy.Status, SortDirection.Desc)]
+    public async Task GetIssuesByProjectAsync_UsesIdToBreakSortTies(
+    IssueSortBy sortBy,
+    SortDirection direction)
+    {
+        await using var dbContext = CreateDbContext();
+        var now = DateTime.UtcNow;
+
+        dbContext.Users.Add(new ApplicationUser { Id = TestUserId });
+        dbContext.Projects.Add(new Project
+        {
+            Id = 1,
+            Name = "Test project",
+            UserId = TestUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        foreach (var id in new[] { 3, 1, 2 })
+        {
+            dbContext.Issues.Add(new Issue
+            {
+                Id = id,
+                Title = $"Issue {id}",
+                ProjectId = 1,
+                Status = IssueStatus.Backlog,
+                Priority = IssuePriority.Medium,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+        }
+
+        await dbContext.SaveChangesAsync();
+        var service = new IssueService(dbContext);
+        var parameters = new IssueQueryParameters
+        {
+            SortBy = sortBy,
+            SortDirection = direction,
+            PageSize = 1
+        };
+
+        var ids = new List<int>();
+
+        for (var page = 1; page <= 3; page++)
+        {
+            parameters.Page = page;
+
+            var result = await service.GetIssuesByProjectAsync(
+                1, parameters, TestUserId);
+
+            Assert.NotNull(result);
+            Assert.Equal(3, result.TotalCount);
+            ids.Add(Assert.Single(result.Items).Id);
+        }
+
+        Assert.Equal(new[] { 1, 2, 3 }, ids);
+    }
+
     [Fact]
     public async Task CreateIssueAsync_CreatesIssueWithExpectedDefaults()
     {
