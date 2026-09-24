@@ -12,8 +12,10 @@ public class UpdateIssueRequest
     [MaxLength(2000)]
     public string Description { get; set; } = string.Empty;
 
+    [EnumDataType(typeof(IssueStatus))]
     public IssueStatus Status { get; set; }
 
+    [EnumDataType(typeof(IssuePriority))]
     public IssuePriority Priority { get; set; }
 
     public string? AssigneeId { get; set; }

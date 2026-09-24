@@ -440,6 +440,60 @@ public class IssuesControllerTests
     }
 
     [Fact]
+    public async Task CreateIssue_ReturnsBadRequest_WhenPriorityNumberIsUnknown()
+    {
+        await using var factory = new TrackrApiFactory();
+        var client = factory.CreateClient();
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
+        await SeedProjectAsync(factory, userId);
+
+        var response = await client.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            new { title = "Invalid priority", priority = 999 });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var issues = await client.GetFromJsonAsync<PagedResponse<IssueResponse>>(
+            "/api/projects/1/issues", JsonOptions);
+
+        Assert.NotNull(issues);
+        Assert.Empty(issues.Items);
+    }
+
+    [Theory]
+    [InlineData(999, 1)]
+    [InlineData(1, 999)]
+    public async Task UpdateIssue_ReturnsBadRequest_WhenEnumNumberIsUnknown(
+        int status,
+        int priority)
+    {
+        await using var factory = new TrackrApiFactory();
+        var client = factory.CreateClient();
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
+        await SeedIssueAsync(factory, userId);
+
+        var response = await client.PutAsJsonAsync(
+            "/api/projects/1/issues/1",
+            new
+            {
+                title = "Should not change",
+                description = "Should not persist",
+                status,
+                priority
+            });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var issue = await client.GetFromJsonAsync<IssueResponse>(
+            "/api/projects/1/issues/1", JsonOptions);
+
+        Assert.NotNull(issue);
+        Assert.Equal("Integration test issue", issue.Title);
+        Assert.Equal(IssueStatus.Backlog, issue.Status);
+        Assert.Equal(IssuePriority.Medium, issue.Priority);
+    }
+
+    [Fact]
     public async Task CreateIssueComment_ReturnsCreated_WhenRequestIsValid()
     {
         await using var factory = new TrackrApiFactory();

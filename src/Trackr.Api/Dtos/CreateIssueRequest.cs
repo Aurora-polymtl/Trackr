@@ -12,6 +12,7 @@ public class CreateIssueRequest
     [MaxLength(2000)]
     public string Description { get; set; } = string.Empty;
 
+    [EnumDataType(typeof(IssuePriority))]
     public IssuePriority Priority { get; set; } = IssuePriority.Medium;
 
     public string? AssigneeId { get; set; }
