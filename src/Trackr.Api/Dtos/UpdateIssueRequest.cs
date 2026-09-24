@@ -13,10 +13,10 @@ public class UpdateIssueRequest
     public string Description { get; set; } = string.Empty;
 
     [EnumDataType(typeof(IssueStatus))]
-    public IssueStatus Status { get; set; }
+    public required IssueStatus Status { get; set; }
 
     [EnumDataType(typeof(IssuePriority))]
-    public IssuePriority Priority { get; set; }
+    public required IssuePriority Priority { get; set; }
 
     public string? AssigneeId { get; set; }
 }

@@ -493,6 +493,43 @@ public class IssuesControllerTests
         Assert.Equal(IssuePriority.Medium, issue.Priority);
     }
 
+    [Theory]
+    [InlineData("status")]
+    [InlineData("priority")]
+    public async Task UpdateIssue_ReturnsBadRequest_WhenEnumFieldIsMissing(
+    string missingField)
+    {
+        await using var factory = new TrackrApiFactory();
+        var client = factory.CreateClient();
+        var userId = await AuthenticationHelper.AuthenticateAsync(client);
+        await SeedIssueAsync(factory, userId);
+
+        var request = new Dictionary<string, object?>
+        {
+            ["title"] = "Should not change",
+            ["description"] = "Should not persist",
+            ["status"] = "Done",
+            ["priority"] = "Critical",
+            ["assigneeId"] = null
+        };
+
+        request.Remove(missingField);
+
+        var response = await client.PutAsJsonAsync(
+            "/api/projects/1/issues/1",
+            request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var issue = await client.GetFromJsonAsync<IssueResponse>(
+            "/api/projects/1/issues/1", JsonOptions);
+
+        Assert.NotNull(issue);
+        Assert.Equal("Integration test issue", issue.Title);
+        Assert.Equal(IssueStatus.Backlog, issue.Status);
+        Assert.Equal(IssuePriority.Medium, issue.Priority);
+    }
+
     [Fact]
     public async Task CreateIssueComment_ReturnsCreated_WhenRequestIsValid()
     {
