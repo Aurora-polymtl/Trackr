@@ -9,6 +9,8 @@ public class IssueQueryParameters
 
     public IssuePriority? Priority { get; set; }
 
+    public string? AssigneeId { get; set; }
+
     public string? Search { get; set; }
 
     public IssueSortBy SortBy { get; set; } = IssueSortBy.CreatedAt;

@@ -337,6 +337,51 @@ public class IssuesControllerTests
     }
 
     [Fact]
+    public async Task GetIssues_FiltersByAssignee_WhenRequesterIsProjectMember()
+    {
+        await using var factory = new TrackrApiFactory();
+
+        var ownerClient = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(
+            ownerClient, "filter-owner@trackr.com");
+        await SeedProjectAsync(factory, ownerId);
+
+        var memberClient = factory.CreateClient();
+        var memberId = await AuthenticationHelper.AuthenticateAsync(
+            memberClient, "filter-member@trackr.com");
+        await SeedProjectMemberAsync(factory, 1, memberId);
+
+        var assigned = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            new CreateIssueRequest
+            {
+                Title = "Assigned issue",
+                AssigneeId = memberId
+            });
+        Assert.Equal(HttpStatusCode.Created, assigned.StatusCode);
+
+        var unassigned = await ownerClient.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            new CreateIssueRequest { Title = "Unassigned issue" });
+        Assert.Equal(HttpStatusCode.Created, unassigned.StatusCode);
+
+        var response = await memberClient.GetAsync(
+            $"/api/projects/1/issues?assigneeId={Uri.EscapeDataString(memberId)}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var page = await response.Content
+            .ReadFromJsonAsync<PagedResponse<IssueResponse>>(JsonOptions);
+
+        Assert.NotNull(page);
+        Assert.Equal(1, page.TotalCount);
+
+        var issue = Assert.Single(page.Items);
+        Assert.Equal("Assigned issue", issue.Title);
+        Assert.Equal(memberId, issue.AssigneeId);
+    }
+
+    [Fact]
     public async Task UpdateIssue_ReturnsBadRequest_WhenAssigneeIsAnotherUser()
     {
         await using var factory = new TrackrApiFactory();

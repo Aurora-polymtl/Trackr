@@ -114,12 +114,13 @@ PUT    /api/projects/{projectId}/issues/{id}/status
 DELETE /api/projects/{projectId}/issues/{id}
 ```
 
-The issue collection endpoint supports filtering, searching, sorting, and pagination.
+The issue collection endpoint supports filtering by status, priority, and assignee, as well as searching, sorting, and pagination.
 
 Example:
 
 ```http
 GET /api/projects/1/issues?status=InProgress&priority=High&search=authentication&sortBy=UpdatedAt&sortDirection=Desc&page=1&pageSize=10
+GET /api/projects/1/issues?assigneeId={userId}&page=1&pageSize=10
 ```
 
 ### Comments

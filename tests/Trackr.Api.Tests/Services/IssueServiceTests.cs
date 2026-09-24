@@ -199,6 +199,43 @@ public class IssueServiceTests
     }
 
     [Fact]
+    public async Task GetIssuesByProjectAsync_FiltersByAssigneeBeforePagination()
+    {
+        await using var dbContext = CreateDbContext();
+        await SeedIssuesAsync(dbContext);
+
+        var first = await dbContext.Issues.SingleAsync(issue =>
+            issue.Title == "Fix authentication");
+        var second = await dbContext.Issues.SingleAsync(issue =>
+            issue.Title == "Improve registration");
+
+        first.AssigneeId = TestUserId;
+        second.AssigneeId = TestUserId;
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+        var parameters = new IssueQueryParameters
+        {
+            AssigneeId = TestUserId,
+            Page = 2,
+            PageSize = 1,
+            SortBy = IssueSortBy.CreatedAt,
+            SortDirection = SortDirection.Asc
+        };
+
+        var result = await service.GetIssuesByProjectAsync(
+            1, parameters, TestUserId);
+
+        Assert.NotNull(result);
+        Assert.Equal(2, result.TotalCount);
+        Assert.Equal(2, result.TotalPages);
+
+        var issue = Assert.Single(result.Items);
+        Assert.Equal("Improve registration", issue.Title);
+        Assert.Equal(TestUserId, issue.AssigneeId);
+    }
+
+    [Fact]
     public async Task GetIssuesByProjectAsync_SortsPriorityAscending()
     {
         await using var dbContext = CreateDbContext();

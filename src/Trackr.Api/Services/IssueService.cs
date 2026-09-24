@@ -47,6 +47,11 @@ public class IssueService : IIssueService
             query = query.Where(issue => issue.Priority == queryParameters.Priority.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(queryParameters.AssigneeId))
+        {
+            query = query.Where(issue => issue.AssigneeId == queryParameters.AssigneeId);
+        }
+
         if (!string.IsNullOrWhiteSpace(queryParameters.Search))
         {
             query = query.Where(issue =>
