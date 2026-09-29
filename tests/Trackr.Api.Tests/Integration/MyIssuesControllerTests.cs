@@ -31,7 +31,9 @@ public class MyIssuesControllerTests
     [Theory]
     [InlineData("?page=0")]
     [InlineData("?pageSize=101")]
-    public async Task GetAssignedToMe_RejectsInvalidPagination(string query)
+    [InlineData("?status=999")]
+    [InlineData("?priority=999")]
+    public async Task GetAssignedToMe_RejectsInvalidQueryParameters(string query)
     {
         await using var factory = new TrackrApiFactory();
         var client = factory.CreateClient();
@@ -113,6 +115,8 @@ public class MyIssuesControllerTests
                     Title = "First assignment",
                     ProjectId = 1,
                     AssigneeId = memberId,
+                    Status = IssueStatus.InProgress,
+                    Priority = IssuePriority.High,
                     CreatedAt = now,
                     UpdatedAt = now.AddMinutes(-1)
                 },
@@ -122,6 +126,8 @@ public class MyIssuesControllerTests
                     Title = "Second assignment",
                     ProjectId = 2,
                     AssigneeId = memberId,
+                    Status = IssueStatus.Done,
+                    Priority = IssuePriority.Low,
                     CreatedAt = now,
                     UpdatedAt = now
                 },
@@ -140,6 +146,8 @@ public class MyIssuesControllerTests
                     Title = "Inaccessible assignment",
                     ProjectId = 3,
                     AssigneeId = memberId,
+                    Status = IssueStatus.InProgress,
+                    Priority = IssuePriority.High,
                     CreatedAt = now,
                     UpdatedAt = now.AddMinutes(1)
                 });
@@ -166,5 +174,30 @@ public class MyIssuesControllerTests
             "/api/issues/assigned-to-me", JsonOptions);
         Assert.NotNull(ownerPage);
         Assert.Equal(3, Assert.Single(ownerPage.Items).Id);
+
+        var byStatus = await memberClient.GetFromJsonAsync<
+    PagedResponse<IssueResponse>>(
+    "/api/issues/assigned-to-me?status=InProgress",
+    JsonOptions);
+        Assert.NotNull(byStatus);
+        Assert.Equal(1, byStatus.TotalCount);
+        Assert.Equal(1, Assert.Single(byStatus.Items).Id);
+
+        var byPriority = await memberClient.GetFromJsonAsync<
+            PagedResponse<IssueResponse>>(
+            "/api/issues/assigned-to-me?priority=Low",
+            JsonOptions);
+        Assert.NotNull(byPriority);
+        Assert.Equal(1, byPriority.TotalCount);
+        Assert.Equal(2, Assert.Single(byPriority.Items).Id);
+
+        var noMatch = await memberClient.GetFromJsonAsync<
+            PagedResponse<IssueResponse>>(
+            "/api/issues/assigned-to-me?status=InProgress&priority=Low",
+            JsonOptions);
+        Assert.NotNull(noMatch);
+        Assert.Empty(noMatch.Items);
+        Assert.Equal(0, noMatch.TotalCount);
+        Assert.Equal(0, noMatch.TotalPages);
     }
 }

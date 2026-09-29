@@ -131,6 +131,16 @@ public class IssueService : IIssueService
                 issue.Project.UserId == userId ||
                 issue.Project.Members.Any(member => member.UserId == userId)
             ));
+
+        if (queryParameters.Status.HasValue)
+        {
+            query = query.Where(issue => issue.Status == queryParameters.Status.Value);
+        }
+
+        if (queryParameters.Priority.HasValue)
+        {
+            query = query.Where(issue => issue.Priority == queryParameters.Priority.Value);
+        }
         
         var totalCount = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalCount / (double)queryParameters.PageSize);
