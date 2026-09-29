@@ -18,5 +18,7 @@ public class UpdateIssueRequest
     [EnumDataType(typeof(IssuePriority))]
     public required IssuePriority Priority { get; set; }
 
+    public DateOnly? DueDate { get; set; }
+
     public string? AssigneeId { get; set; }
 }

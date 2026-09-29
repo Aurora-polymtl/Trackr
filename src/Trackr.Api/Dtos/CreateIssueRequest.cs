@@ -15,5 +15,7 @@ public class CreateIssueRequest
     [EnumDataType(typeof(IssuePriority))]
     public IssuePriority Priority { get; set; } = IssuePriority.Medium;
 
+    public DateOnly? DueDate { get; set; }
+
     public string? AssigneeId { get; set; }
 }

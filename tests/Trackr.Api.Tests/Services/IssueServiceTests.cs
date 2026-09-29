@@ -378,7 +378,8 @@ public class IssueServiceTests
         {
             Title = "New Issue",
             Description = "Issue created from test",
-            Priority = IssuePriority.High
+            Priority = IssuePriority.High,
+            DueDate = new DateOnly(2026, 10, 15)
         };
         var beforeCreation = DateTime.UtcNow;
         var (op, result) = await service.CreateIssueAsync(1, request, TestUserId);
@@ -397,6 +398,7 @@ public class IssueServiceTests
         var savedIssue = await dbContext.Issues.SingleAsync();
         Assert.Equal(result.Id, savedIssue.Id);
         Assert.Equal("New Issue", savedIssue.Title);
+        Assert.Equal(result.DueDate, savedIssue.DueDate);
     }
 
     [Fact]
@@ -468,10 +470,12 @@ public class IssueServiceTests
 
         Assert.NotNull(issue);
         Assert.Null(issue.AssigneeId);
+        Assert.Null(issue.DueDate);
 
         var savedIssue = await dbContext.Issues.SingleAsync();
 
         Assert.Null(savedIssue.AssigneeId);
+        Assert.Null(savedIssue.DueDate);
     }
 
     [Fact]
@@ -599,6 +603,7 @@ public class IssueServiceTests
             Description = "Old Description",
             Status = IssueStatus.Backlog,
             Priority = IssuePriority.Low,
+            DueDate = new DateOnly(2026, 2, 15),
             ProjectId = 1,
             CreatedAt = createdAt,
             UpdatedAt = createdAt
@@ -620,7 +625,8 @@ public class IssueServiceTests
             Title = "Updated Title",
             Description = "Updated Description",
             Status = IssueStatus.InProgress,
-            Priority = IssuePriority.High
+            Priority = IssuePriority.High,
+            DueDate = new DateOnly(2026, 10, 11)
         };
         var beforeUpdate = DateTime.UtcNow;
         var result = await service.UpdateIssueAsync(1, 1, request, TestUserId);

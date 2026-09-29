@@ -9,6 +9,7 @@ public class IssueResponse
     public string Description { get; set; } = string.Empty;
     public IssueStatus Status { get; set; } = IssueStatus.Backlog;
     public IssuePriority Priority { get; set; }
+    public DateOnly? DueDate { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public int ProjectId { get; set; }

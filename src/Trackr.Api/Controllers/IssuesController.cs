@@ -125,6 +125,7 @@ public class IssuesController : ControllerBase
             Description = issue.Description,
             Status = issue.Status,
             Priority = issue.Priority,
+            DueDate = issue.DueDate,
             CreatedAt = issue.CreatedAt,
             UpdatedAt = issue.UpdatedAt,
             ProjectId = issue.ProjectId,

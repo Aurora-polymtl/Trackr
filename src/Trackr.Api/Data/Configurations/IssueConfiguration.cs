@@ -27,6 +27,9 @@ public class IssueConfiguration : IEntityTypeConfiguration<Issue>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(issue => issue.DueDate)
+            .HasColumnType("date");
+
         builder.Property(issue => issue.CreatedAt)
             .IsRequired();
 

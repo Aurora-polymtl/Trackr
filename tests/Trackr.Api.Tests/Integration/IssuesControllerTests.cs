@@ -1287,6 +1287,67 @@ public class IssuesControllerTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task IssueDueDate_RoundTripsAndCanBeCleared()
+    {
+        await using var factory = new TrackrApiFactory();
+        var client = factory.CreateClient();
+        var ownerId = await AuthenticationHelper.AuthenticateAsync(client);
+        await SeedProjectAsync(factory, ownerId);
+
+        var created = await client.PostAsJsonAsync(
+            "/api/projects/1/issues",
+            new CreateIssueRequest { Title = "Due date test" });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        var createdIssue = await created.Content
+            .ReadFromJsonAsync<IssueResponse>(JsonOptions);
+        Assert.NotNull(createdIssue);
+        Assert.Null(createdIssue.DueDate);
+
+        var url = $"/api/projects/1/issues/{createdIssue.Id}";
+        var dueDate = new DateOnly(2026, 10, 15);
+        var update = new UpdateIssueRequest
+        {
+            Title = "Due date test",
+            Status = IssueStatus.Backlog,
+            Priority = IssuePriority.Medium,
+            DueDate = dueDate
+        };
+
+        var setDate = await client.PutAsJsonAsync(url, update, JsonOptions);
+        Assert.Equal(HttpStatusCode.NoContent, setDate.StatusCode);
+
+        var fetched = await client.GetFromJsonAsync<IssueResponse>(
+            url, JsonOptions);
+        Assert.NotNull(fetched);
+        Assert.Equal(dueDate, fetched.DueDate);
+
+        var list = await client.GetFromJsonAsync<PagedResponse<IssueResponse>>(
+            "/api/projects/1/issues", JsonOptions);
+        Assert.NotNull(list);
+        Assert.Equal(dueDate, Assert.Single(list.Items).DueDate);
+
+        var statusChange = await client.PutAsJsonAsync(
+            $"{url}/status",
+            new UpdateIssueStatusRequest { Status = IssueStatus.InProgress },
+            JsonOptions);
+        Assert.Equal(HttpStatusCode.NoContent, statusChange.StatusCode);
+
+        fetched = await client.GetFromJsonAsync<IssueResponse>(url, JsonOptions);
+        Assert.NotNull(fetched);
+        Assert.Equal(dueDate, fetched.DueDate);
+
+        update.Status = IssueStatus.InProgress;
+        update.DueDate = null;
+        var clearDate = await client.PutAsJsonAsync(url, update, JsonOptions);
+        Assert.Equal(HttpStatusCode.NoContent, clearDate.StatusCode);
+
+        fetched = await client.GetFromJsonAsync<IssueResponse>(url, JsonOptions);
+        Assert.NotNull(fetched);
+        Assert.Null(fetched.DueDate);
+    }
+
     private static async Task SeedProjectAsync(TrackrApiFactory factory, string userId)
     {
         using var scope = factory.Services.CreateScope();

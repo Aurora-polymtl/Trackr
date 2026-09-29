@@ -103,6 +103,7 @@ public class IssueService : IIssueService
                 Description = issue.Description,
                 Status = issue.Status,
                 Priority = issue.Priority,
+                DueDate = issue.DueDate,
                 CreatedAt = issue.CreatedAt,
                 UpdatedAt = issue.UpdatedAt,
                 ProjectId = issue.ProjectId,
@@ -162,6 +163,7 @@ public class IssueService : IIssueService
                     Description = issue.Description,
                     Status = issue.Status,
                     Priority = issue.Priority,
+                    DueDate = issue.DueDate,
                     CreatedAt = issue.CreatedAt,
                     UpdatedAt = issue.UpdatedAt,
                     ProjectId = issue.ProjectId,
@@ -198,6 +200,7 @@ public class IssueService : IIssueService
                 Description = issue.Description,
                 Status = issue.Status,
                 Priority = issue.Priority,
+                DueDate = issue.DueDate,
                 CreatedAt = issue.CreatedAt,
                 UpdatedAt = issue.UpdatedAt,
                 ProjectId = issue.ProjectId,
@@ -291,6 +294,7 @@ public class IssueService : IIssueService
             Description = request.Description,
             Status = IssueStatus.Backlog,
             Priority = request.Priority,
+            DueDate = request.DueDate,
             CreatedAt = now,
             UpdatedAt = now,
             ProjectId = projectId,
@@ -361,6 +365,7 @@ public class IssueService : IIssueService
         issue.Description = request.Description;
         issue.Status = request.Status;
         issue.Priority = request.Priority;
+        issue.DueDate = request.DueDate;
         issue.UpdatedAt = DateTime.UtcNow;
         issue.AssigneeId = request.AssigneeId;
 
