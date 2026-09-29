@@ -86,6 +86,7 @@ GET    /api/projects
 GET    /api/projects/{id}
 GET    /api/projects/{id}/members
 GET    /api/projects/{id}/members/{memberId}
+GET    /api/projects/{id}/summary
 POST   /api/projects
 POST   /api/projects/{id}/members
 POST   /api/auth/register
@@ -108,6 +109,7 @@ Issues are scoped to a project.
 ```http
 GET    /api/projects/{projectId}/issues
 GET    /api/projects/{projectId}/issues/{id}
+GET    /api/issues/assigned-to-me
 POST   /api/projects/{projectId}/issues
 PUT    /api/projects/{projectId}/issues/{id}
 PUT    /api/projects/{projectId}/issues/{id}/status

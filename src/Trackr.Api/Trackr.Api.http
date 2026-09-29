@@ -87,6 +87,12 @@ Authorization: Bearer {{token}}
 
 ###
 
+GET {{host}}/api/issues/assigned-to-me?page=1&pageSize=10
+Accept: application/json
+Authorization: Bearer {{token}} 
+
+###
+
 DELETE {{host}}/api/projects/1
 
 ###

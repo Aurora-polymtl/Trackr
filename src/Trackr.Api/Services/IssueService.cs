@@ -120,6 +120,56 @@ public class IssueService : IIssueService
         };
     }
 
+    public async Task<PagedResponse<IssueResponse>> GetAssignedIssuesAsync(
+        AssignedIssuesQueryParameters queryParameters, 
+        string userId
+        )
+    {
+        var query = _dbContext.Issues.Where(issue =>
+            issue.AssigneeId == userId &&
+            (
+                issue.Project.UserId == userId ||
+                issue.Project.Members.Any(member => member.UserId == userId)
+            ));
+        
+        var totalCount = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalCount / (double)queryParameters.PageSize);
+        var offset = ((long)queryParameters.Page - 1) * queryParameters.PageSize;
+
+        var items = new List<IssueResponse>();
+
+        if (offset < totalCount)
+        {
+            items = await query
+                .OrderByDescending(issue => issue.UpdatedAt)
+                .ThenBy(issue => issue.Id)
+                .Skip((int)offset)
+                .Take(queryParameters.PageSize)
+                .Select(issue => new IssueResponse
+                {
+                    Id = issue.Id,
+                    Title = issue.Title,
+                    Description = issue.Description,
+                    Status = issue.Status,
+                    Priority = issue.Priority,
+                    CreatedAt = issue.CreatedAt,
+                    UpdatedAt = issue.UpdatedAt,
+                    ProjectId = issue.ProjectId,
+                    AssigneeId = issue.AssigneeId
+                })
+                .ToListAsync();
+        }
+
+        return new PagedResponse<IssueResponse>
+        {
+            Items = items,
+            Page = queryParameters.Page,
+            PageSize = queryParameters.PageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages
+        };
+    }
+
     public async Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id, string userId)
     {
         return await _dbContext.Issues

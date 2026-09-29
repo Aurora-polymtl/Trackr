@@ -10,6 +10,7 @@ public interface IIssueService
         IssueQueryParameters queryParameters,
         string userId
         );
+    Task<PagedResponse<IssueResponse>> GetAssignedIssuesAsync(AssignedIssuesQueryParameters queryParameters, string userId);
     Task<IssueResponse?> GetIssueByIdAsync(int projectId, int id, string userId);
     Task<IReadOnlyList<IssueCommentResponse>?> GetIssueCommentsAsync(int projectId, int issueId, string userId);
     Task<IssueCommentResponse?> GetIssueCommentByIdAsync(int projectId, int issueId, int commentId, string userId);

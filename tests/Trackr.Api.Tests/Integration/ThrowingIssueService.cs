@@ -15,6 +15,13 @@ public class ThrowingIssueService : IIssueService
             "Simulated test exception.");
     }
 
+    public Task<PagedResponse<IssueResponse>> GetAssignedIssuesAsync(
+    AssignedIssuesQueryParameters queryParameters,
+    string userId)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<IssueResponse?> GetIssueByIdAsync(
         int projectId,
         int id,
