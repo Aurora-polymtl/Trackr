@@ -92,6 +92,16 @@ Accept: application/json
 Authorization: Bearer {{token}}
 
 ###
+GET {{host}}/api/projects/2/issues?dueOnOrBefore=2026-10-15
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+GET {{host}}/api/issues/assigned-to-me?dueOnOrBefore=2026-10-15
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
 
 GET {{host}}/api/issues/assigned-to-me?page=1&pageSize=10
 Accept: application/json

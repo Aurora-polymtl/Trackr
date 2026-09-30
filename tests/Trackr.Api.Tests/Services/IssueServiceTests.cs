@@ -1249,6 +1249,47 @@ public class IssueServiceTests
         Assert.Single(dbContext.IssueComments);
     }
 
+    [Fact]
+    public async Task GetIssuesByProjectAsync_FiltersDueDatesBeforePagination()
+    {
+        await using var dbContext = CreateDbContext();
+        await SeedIssuesAsync(dbContext);
+
+        var first = await dbContext.Issues.SingleAsync(issue =>
+            issue.Title == "Fix authentication");
+        var boundary = await dbContext.Issues.SingleAsync(issue =>
+            issue.Title == "Create dashboard");
+        var later = await dbContext.Issues.SingleAsync(issue =>
+            issue.Title == "Improve registration");
+
+        first.DueDate = new DateOnly(2026, 10, 10);
+        boundary.DueDate = new DateOnly(2026, 10, 15);
+        later.DueDate = new DateOnly(2026, 10, 16);
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+        var parameters = new IssueQueryParameters
+        {
+            DueOnOrBefore = new DateOnly(2026, 10, 15),
+            PageSize = 1,
+            SortBy = IssueSortBy.CreatedAt,
+            SortDirection = SortDirection.Asc
+        };
+
+        var page1 = await service.GetIssuesByProjectAsync(
+            1, parameters, TestUserId);
+        Assert.NotNull(page1);
+        Assert.Equal(2, page1.TotalCount);
+        Assert.Equal(2, page1.TotalPages);
+        Assert.Equal("Fix authentication", Assert.Single(page1.Items).Title);
+
+        parameters.Page = 2;
+        var page2 = await service.GetIssuesByProjectAsync(
+            1, parameters, TestUserId);
+        Assert.NotNull(page2);
+        Assert.Equal("Create dashboard", Assert.Single(page2.Items).Title);
+    }
+
     private static async Task SeedIssuesAsync(TrackrDbContext dbContext)
     {
         var now = DateTime.UtcNow;

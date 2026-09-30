@@ -33,6 +33,7 @@ public class MyIssuesControllerTests
     [InlineData("?pageSize=101")]
     [InlineData("?status=999")]
     [InlineData("?priority=999")]
+    [InlineData("?dueOnOrBefore=not-a-date")]
     public async Task GetAssignedToMe_RejectsInvalidQueryParameters(string query)
     {
         await using var factory = new TrackrApiFactory();
@@ -117,6 +118,7 @@ public class MyIssuesControllerTests
                     AssigneeId = memberId,
                     Status = IssueStatus.InProgress,
                     Priority = IssuePriority.High,
+                    DueDate = new DateOnly(2026, 10, 10),
                     CreatedAt = now,
                     UpdatedAt = now.AddMinutes(-1)
                 },
@@ -128,6 +130,7 @@ public class MyIssuesControllerTests
                     AssigneeId = memberId,
                     Status = IssueStatus.Done,
                     Priority = IssuePriority.Low,
+                    DueDate = new DateOnly(2026, 10, 20),
                     CreatedAt = now,
                     UpdatedAt = now
                 },
@@ -148,6 +151,7 @@ public class MyIssuesControllerTests
                     AssigneeId = memberId,
                     Status = IssueStatus.InProgress,
                     Priority = IssuePriority.High,
+                    DueDate = new DateOnly(2026, 10, 1),
                     CreatedAt = now,
                     UpdatedAt = now.AddMinutes(1)
                 });
@@ -199,5 +203,16 @@ public class MyIssuesControllerTests
         Assert.Empty(noMatch.Items);
         Assert.Equal(0, noMatch.TotalCount);
         Assert.Equal(0, noMatch.TotalPages);
+
+        var dueSoon = await memberClient.GetFromJsonAsync<
+            PagedResponse<IssueResponse>>(
+            "/api/issues/assigned-to-me?status=InProgress&dueOnOrBefore=2026-10-10",
+            JsonOptions);
+
+        Assert.NotNull(dueSoon);
+        Assert.Equal(1, dueSoon.TotalCount);
+        var dueIssue = Assert.Single(dueSoon.Items);
+        Assert.Equal(1, dueIssue.Id);
+        Assert.Equal(new DateOnly(2026, 10, 10), dueIssue.DueDate);
     }
 }

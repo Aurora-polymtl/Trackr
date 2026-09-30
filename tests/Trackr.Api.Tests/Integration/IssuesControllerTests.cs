@@ -1328,6 +1328,18 @@ public class IssuesControllerTests
         Assert.NotNull(list);
         Assert.Equal(dueDate, Assert.Single(list.Items).DueDate);
 
+        var onBoundary = await client.GetFromJsonAsync<PagedResponse<IssueResponse>>(
+            "/api/projects/1/issues?dueOnOrBefore=2026-10-15",
+            JsonOptions);
+        Assert.NotNull(onBoundary);
+        Assert.Single(onBoundary.Items);
+
+        var beforeBoundary = await client.GetFromJsonAsync<PagedResponse<IssueResponse>>(
+            "/api/projects/1/issues?dueOnOrBefore=2026-10-14",
+            JsonOptions);
+        Assert.NotNull(beforeBoundary);
+        Assert.Empty(beforeBoundary.Items);
+
         var statusChange = await client.PutAsJsonAsync(
             $"{url}/status",
             new UpdateIssueStatusRequest { Status = IssueStatus.InProgress },

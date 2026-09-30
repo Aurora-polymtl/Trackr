@@ -47,6 +47,14 @@ public class IssueService : IIssueService
             query = query.Where(issue => issue.Priority == queryParameters.Priority.Value);
         }
 
+        if (queryParameters.DueOnOrBefore.HasValue)
+        {
+            var dueOnOrBefore = queryParameters.DueOnOrBefore.Value;
+            query = query.Where(issue =>
+                issue.DueDate.HasValue && 
+                issue.DueDate.Value <= dueOnOrBefore);
+        }
+
         if (!string.IsNullOrWhiteSpace(queryParameters.AssigneeId))
         {
             query = query.Where(issue => issue.AssigneeId == queryParameters.AssigneeId);
@@ -141,6 +149,14 @@ public class IssueService : IIssueService
         if (queryParameters.Priority.HasValue)
         {
             query = query.Where(issue => issue.Priority == queryParameters.Priority.Value);
+        }
+
+        if (queryParameters.DueOnOrBefore.HasValue)
+        {
+            var dueOnOrBefore = queryParameters.DueOnOrBefore.Value;
+            query = query.Where(issue => 
+                issue.DueDate.HasValue &&
+                issue.DueDate.Value <= dueOnOrBefore);
         }
         
         var totalCount = await query.CountAsync();
