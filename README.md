@@ -117,7 +117,7 @@ DELETE /api/projects/{projectId}/issues/{id}
 ```
 A full issue update requires status and priority. Omitting description clears it; omitting assigneeId unassigns the issue.
 
-The issue collection endpoint supports filtering by status, priority, and assignee, as well as searching, sorting, and pagination.
+The issue collection endpoint supports filtering by status, priority, due date, and assignee, as well as searching, sorting, and pagination.
 
 Example:
 

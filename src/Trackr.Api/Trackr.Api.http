@@ -102,6 +102,11 @@ Accept: application/json
 Authorization: Bearer {{token}}
 
 ###
+GET {{host}}/api/projects/2/issues?sortBy=DueDate&sortDirection=Asc&page=1&pageSize=10
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
 
 GET {{host}}/api/issues/assigned-to-me?page=1&pageSize=10
 Accept: application/json

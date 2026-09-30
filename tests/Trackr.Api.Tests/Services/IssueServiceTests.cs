@@ -1290,6 +1290,66 @@ public class IssueServiceTests
         Assert.Equal("Create dashboard", Assert.Single(page2.Items).Title);
     }
 
+    [Theory]
+    [InlineData(
+    SortDirection.Asc,
+    "Improve registration",
+    "Fix authentication",
+    "Critical production bug")]
+    [InlineData(
+    SortDirection.Desc,
+    "Fix authentication",
+    "Critical production bug",
+    "Improve registration")]
+    public async Task GetIssuesByProjectAsync_SortsDueDatesWithNullsLast(
+    SortDirection direction,
+    string first,
+    string second,
+    string third)
+    {
+        await using var dbContext = CreateDbContext();
+        await SeedIssuesAsync(dbContext);
+
+        var fix = await dbContext.Issues.SingleAsync(issue =>
+            issue.Title == "Fix authentication");
+        var improve = await dbContext.Issues.SingleAsync(issue =>
+            issue.Title == "Improve registration");
+        var bug = await dbContext.Issues.SingleAsync(issue =>
+            issue.Title == "Critical production bug");
+
+        fix.DueDate = new DateOnly(2026, 10, 15);
+        improve.DueDate = new DateOnly(2026, 10, 10);
+        bug.DueDate = new DateOnly(2026, 10, 15);
+        await dbContext.SaveChangesAsync();
+
+        var service = new IssueService(dbContext);
+        var parameters = new IssueQueryParameters
+        {
+            SortBy = IssueSortBy.DueDate,
+            SortDirection = direction,
+            PageSize = 2
+        };
+
+        var page1 = await service.GetIssuesByProjectAsync(
+            1, parameters, TestUserId);
+        Assert.NotNull(page1);
+        Assert.Equal(4, page1.TotalCount);
+        Assert.Equal(2, page1.TotalPages);
+
+        parameters.Page = 2;
+        var page2 = await service.GetIssuesByProjectAsync(
+            1, parameters, TestUserId);
+        Assert.NotNull(page2);
+
+        var titles = page1.Items
+            .Concat(page2.Items)
+            .Select(issue => issue.Title);
+
+        Assert.Equal(
+            new[] { first, second, third, "Create dashboard" },
+            titles);
+    }
+
     private static async Task SeedIssuesAsync(TrackrDbContext dbContext)
     {
         var now = DateTime.UtcNow;

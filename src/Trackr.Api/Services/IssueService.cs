@@ -72,6 +72,12 @@ public class IssueService : IIssueService
 
         var orderedQuery = queryParameters.SortBy switch
         {
+            IssueSortBy.DueDate => 
+                queryParameters.SortDirection == SortDirection.Asc
+                    ? query.OrderBy(issue => issue.DueDate == null)
+                        .ThenBy(issue => issue.DueDate)
+                    : query.OrderBy(issue => issue.DueDate == null)
+                        .ThenByDescending(issue => issue.DueDate),
             IssueSortBy.UpdatedAt =>
                 queryParameters.SortDirection == SortDirection.Asc
                     ? query.OrderBy(issue => issue.UpdatedAt)

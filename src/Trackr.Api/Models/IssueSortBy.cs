@@ -5,5 +5,6 @@ public enum IssueSortBy
     CreatedAt,
     UpdatedAt,
     Priority,
-    Status
+    Status,
+    DueDate
 }
