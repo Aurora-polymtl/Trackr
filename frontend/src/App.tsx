@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react"
+import { useState, type SubmitEvent } from "react"
 import { getProjects, signIn, type Project, type Session } from "./api"
 
 function App() {
@@ -9,7 +9,7 @@ function App() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
 
-  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     setBusy(true)
     setError("")
