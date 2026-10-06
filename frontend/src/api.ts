@@ -47,3 +47,32 @@ export function getProjects(token: string) {
         },
     }, 'Session expirée. Veuillez vous reconnecter.')
 }
+
+export type Issue = {
+    id: number
+    title: string
+    description: string
+    status: 'Backlog' | 'Todo' | 'InProgress' | 'Review' | 'Done'
+    priority: 'Low' | 'Medium' | 'High' | 'Critical'
+    dueDate: string | null
+    createdAt: string
+    updatedAt: string
+    projectId: number
+    assigneeId: string | null
+}
+
+export type PagedResponse<T> = {
+    items: T[]
+    page: number
+    pageSize: number
+    totalCount: number
+    totalPages: number
+}
+
+export function getProjectIssues(token: string, projectId: number, page: number) {
+    return request<PagedResponse<Issue>>(
+        `/api/projects/${projectId}/issues?page=${page}`,
+        { headers: { 'Authorization': `Bearer ${token}` } },
+        'Session expirée. Veuillez vous reconnecter.',
+    )
+}

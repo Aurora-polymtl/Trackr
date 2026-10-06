@@ -190,3 +190,30 @@ h1 {
     padding: 24px 16px; 
   }
 }
+
+.project-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #0b6962;
+  text-align: left;
+}
+
+.project-link:hover:not(:disabled) {
+  background: transparent;
+  color: #084f4a;
+  text-decoration: underline;
+}
+
+.back-link {
+  margin-bottom: 20px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 24px;
+}

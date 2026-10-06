@@ -94,3 +94,42 @@ it('actualise les projets puis revient à la connexion après la déconnexion', 
     expect(screen.getByRole('heading', { name: 'Connexion' })).not.toBeNull()
     expect(screen.queryByText('Project Beta')).toBeNull()
 })
+
+it('ouvre un projet et parcourt ses pages d’issues', async () => {
+    const firstPage = {
+        items: [{ id: 1, title: 'Première issue', description: '',
+            status: 'Todo', priority: 'High' }],
+        page: 1, pageSize: 10, totalCount: 11, totalPages: 2,
+    }
+    const secondPage = {
+        ...firstPage,
+        items: [{ id: 2, title: 'Deuxième issue', description: '',
+            status: 'Done', priority: 'Low' }],
+        page: 2,
+    }
+    const fetchMock = vi.fn()
+        .mockResolvedValueOnce(jsonResponse(session))
+        .mockResolvedValueOnce(jsonResponse([project]))
+        .mockResolvedValueOnce(jsonResponse(firstPage))
+        .mockResolvedValueOnce(jsonResponse(secondPage))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = await submitLogin()
+    await screen.findByText('Project Alpha')
+    await user.click(screen.getByRole('button', { name: 'Project Alpha' }))
+
+    expect(await screen.findByText('Première issue')).not.toBeNull()
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/projects/1/issues?page=1', {
+        headers: { Authorization: 'Bearer test-token' },
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Suivante' }))
+    expect(await screen.findByText('Deuxième issue')).not.toBeNull()
+    expect(screen.queryByText('Première issue')).toBeNull()
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/projects/1/issues?page=2', {
+        headers: { Authorization: 'Bearer test-token' },
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Retour aux projets' }))
+    expect(screen.getByRole('heading', { name: 'Projets' })).not.toBeNull()
+})
