@@ -133,3 +133,79 @@ it('ouvre un projet et parcourt ses pages d’issues', async () => {
     await user.click(screen.getByRole('button', { name: 'Retour aux projets' }))
     expect(screen.getByRole('heading', { name: 'Projets' })).not.toBeNull()
 })
+
+it('crée un compte puis propose la connexion sans connecter automatiquement', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({ id: 'new-user', email: 'alice@example.com' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Créer un compte' }))
+    await user.type(screen.getByLabelText('Adresse courriel'), 'alice@example.com')
+    await user.type(screen.getByLabelText('Mot de passe'), 'Trackr123!')
+    await user.type(screen.getByLabelText('Confirmer le mot de passe'), 'Trackr123!')
+    await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+
+    expect(await screen.findByRole('status')).toHaveProperty(
+        'textContent', 'Inscription réussie. Veuillez vous connecter.',
+    )
+    expect(screen.getByRole('heading', { name: 'Connexion' })).not.toBeNull()
+    expect(screen.getByLabelText('Adresse courriel')).toHaveProperty(
+        'value', 'alice@example.com',
+    )
+    expect(screen.getByLabelText('Mot de passe')).toHaveProperty('value', '')
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            email: 'alice@example.com',
+            password: 'Trackr123!',
+        }),
+    })
+})
+
+it('ne contacte pas l’API si les mots de passe diffèrent', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Créer un compte' }))
+    await user.type(screen.getByLabelText('Adresse courriel'), 'alice@example.com')
+    await user.type(screen.getByLabelText('Mot de passe'), 'Trackr123!')
+    await user.type(screen.getByLabelText('Confirmer le mot de passe'), 'Autre123!')
+    await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+
+    expect(screen.getByRole('alert')).toHaveProperty(
+        'textContent', 'Les mots de passe ne correspondent pas.',
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+})
+
+it('explique le refus quand l’adresse est déjà utilisée', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({
+            errors: { DuplicateUserName: ['Already taken.'] },
+        }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Créer un compte' }))
+    await user.type(screen.getByLabelText('Adresse courriel'), 'alice@example.com')
+    await user.type(screen.getByLabelText('Mot de passe'), 'Trackr123!')
+    await user.type(screen.getByLabelText('Confirmer le mot de passe'), 'Trackr123!')
+    await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+
+    expect(await screen.findByRole('alert')).toHaveProperty(
+        'textContent', 'Cette adresse courriel est déjà utilisée.',
+    )
+    expect(screen.getByRole('heading', { name: 'Créer un compte' })).not.toBeNull()
+})

@@ -76,3 +76,44 @@ export function getProjectIssues(token: string, projectId: number, page: number)
         'Session expirée. Veuillez vous reconnecter.',
     )
 }
+
+export type RegisterResponse = {
+    id: string
+    email: string
+}
+
+type RegisterProblem = {
+    errors?: Record<string, string[]>
+}
+
+export async function signUp(email: string, password: string): Promise<RegisterResponse> {
+    let response: Response
+    try {
+        response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        })
+    } catch {
+        throw new Error('API indisponible.')
+    }
+
+    if (response.status === 400) {
+        const problem = (await response.json().catch(() => null)) as RegisterProblem | null
+        const codes = Object.keys(problem?.errors ?? {})
+
+        if (codes.includes('DuplicateEmail') || codes.includes('DuplicateUserName')) {
+            throw new Error('Cette adresse courriel est déjà utilisée.')
+        }
+        if (codes.some((code) => code.startsWith('Password'))) {
+            throw new Error('Le mot de passe ne respecte pas les exigences indiquées.')
+        }
+        throw new Error('Vérifiez les informations saisies et réessayez.')
+    }
+
+    if (!response.ok) {
+        throw new Error('Inscription impossible pour le moment. Veuillez réessayer plus tard.') 
+    }
+    
+    return response.json() as Promise<RegisterResponse>
+}

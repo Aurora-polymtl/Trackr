@@ -217,3 +217,28 @@ h1 {
   gap: 14px;
   margin-top: 24px;
 }
+
+.password-hint {
+  margin: 0;
+  color: #57666c;
+  font-size: 13px;
+}
+
+.notice {
+  margin: 0;
+  color: #0b6962;
+}
+
+.login-form .auth-toggle {
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #0b6962;
+  text-decoration: underline;
+}
+
+.login-form .auth-toggle:hover:not(:disabled) {
+  background: transparent;
+  color: #084f4a;
+}
