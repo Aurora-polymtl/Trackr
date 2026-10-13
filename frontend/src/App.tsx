@@ -4,6 +4,7 @@ import {
   getProjects,
   signIn,
   signUp,
+  createProject,
   type Issue,
   type PagedResponse,
   type Project,
@@ -37,6 +38,9 @@ function App() {
   const [notice, setNotice] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [issuePage, setIssuePage] = useState<PagedResponse<Issue> | null>(null);
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
 
   async function handleAuth(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,6 +82,42 @@ function App() {
     setNotice("");
   }
 
+  function toggleProjectForm() {
+    setShowProjectForm(!showProjectForm);
+    setProjectName("");
+    setProjectDescription("");
+    setError("");
+  }
+
+  async function handleCreateProject(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!session) return;
+
+    const name = projectName.trim();
+    if (!name) {
+      setError("Le nom du projet est obligatoire.");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    try {
+      const created = await createProject(
+        session.accessToken,
+        name,
+        projectDescription.trim(),
+      );
+      setProjects((current) => [...current, created]);
+      setShowProjectForm(false);
+      setProjectName("");
+      setProjectDescription("");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Erreur inattendue.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function refreshProjects() {
     if (!session) return;
     setBusy(true);
@@ -108,6 +148,9 @@ function App() {
   }
 
   async function openProject(project: Project) {
+    setShowProjectForm(false);
+    setProjectName("");
+    setProjectDescription("");
     setSelectedProject(project);
     setIssuePage(null);
     await loadIssuePage(project, 1);
@@ -124,6 +167,9 @@ function App() {
     setProjects([]);
     setSelectedProject(null);
     setIssuePage(null);
+    setShowProjectForm(false);
+    setProjectName("");
+    setProjectDescription("");
     setError("");
   }
 
@@ -146,7 +192,9 @@ function App() {
           <input
             id="password"
             type="password"
-            autoComplete={authMode === "register" ? "new-password" : "current-password"}
+            autoComplete={
+              authMode === "register" ? "new-password" : "current-password"
+            }
             required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -154,9 +202,12 @@ function App() {
           {authMode === "register" && (
             <>
               <p className="password-hint">
-                Au moins 6 caractères, avec majuscule, minuscule, chiffre et symbole.
+                Au moins 6 caractères, avec majuscule, minuscule, chiffre et
+                symbole.
               </p>
-              <label htmlFor="confirm-password">Confirmer le mot de passe</label>
+              <label htmlFor="confirm-password">
+                Confirmer le mot de passe
+              </label>
               <input
                 id="confirm-password"
                 type="password"
@@ -167,18 +218,32 @@ function App() {
               />
             </>
           )}
-          {notice && <p className="notice" role="status">{notice}</p>}
+          {notice && (
+            <p className="notice" role="status">
+              {notice}
+            </p>
+          )}
           {error && (
             <p className="error" role="alert">
               {error}
             </p>
           )}
           <button type="submit" disabled={busy}>
-            {busy ? "Veuillez patienter..." : authMode === "login" ? "Se connecter" : "Créer mon compte"}
+            {busy
+              ? "Veuillez patienter..."
+              : authMode === "login"
+                ? "Se connecter"
+                : "Créer mon compte"}
           </button>
-          <button className="auth-toggle" type="button"
-            onClick={switchAuthMode} disabled={busy}>
-            {authMode === "login" ? "Créer un compte" : "Déjà inscrit? Se connecter"}
+          <button
+            className="auth-toggle"
+            type="button"
+            onClick={switchAuthMode}
+            disabled={busy}
+          >
+            {authMode === "login"
+              ? "Créer un compte"
+              : "Déjà inscrit? Se connecter"}
           </button>
         </form>
       </main>
@@ -216,44 +281,75 @@ function App() {
       <main className="content">
         {selectedProject ? (
           <>
-            <button className="secondary back-link" type="button"
-              onClick={closeProject} disabled={busy}>
-                Retour aux projets
+            <button
+              className="secondary back-link"
+              type="button"
+              onClick={closeProject}
+              disabled={busy}
+            >
+              Retour aux projets
             </button>
             <div className="content-heading">
               <h1>{selectedProject.name}</h1>
-              {issuePage && <span>{issuePage.totalCount} issue{issuePage.totalCount === 1 ? "" : "s"}</span>}
+              {issuePage && (
+                <span>
+                  {issuePage.totalCount} issue
+                  {issuePage.totalCount === 1 ? "" : "s"}
+                </span>
+              )}
             </div>
-            {error && <p className="error" role="alert">{error}</p>}
-            {busy && <p className="empty" role="status">Chargement...</p>}
-            {issuePage && (issuePage.items.length === 0 ? (
-              <p className="empty">Aucune issue pour ce projet.</p>
-            ) : (
-              <ul className="project-list">
-                {issuePage.items.map((issue) => (
-                  <li className="project-row" key={issue.id}>
-                    <div>
-                      <h2>{issue.title}</h2>
-                      <p>{issue.description || "Aucune description"}</p>
-                    </div>
-                    <span className="role">
-                      {statusLabels[issue.status]} - {priorityLabels[issue.priority]}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ))}
+            {error && (
+              <p className="error" role="alert">
+                {error}
+              </p>
+            )}
+            {busy && (
+              <p className="empty" role="status">
+                Chargement...
+              </p>
+            )}
+            {issuePage &&
+              (issuePage.items.length === 0 ? (
+                <p className="empty">Aucune issue pour ce projet.</p>
+              ) : (
+                <ul className="project-list">
+                  {issuePage.items.map((issue) => (
+                    <li className="project-row" key={issue.id}>
+                      <div>
+                        <h2>{issue.title}</h2>
+                        <p>{issue.description || "Aucune description"}</p>
+                      </div>
+                      <span className="role">
+                        {statusLabels[issue.status]} -{" "}
+                        {priorityLabels[issue.priority]}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ))}
             {issuePage && issuePage.totalPages > 1 && (
               <nav className="pagination" aria-label="Pagination des issues">
-                <button className="secondary" type="button"
+                <button
+                  className="secondary"
+                  type="button"
                   disabled={busy || issuePage.page <= 1}
-                  onClick={() => loadIssuePage(selectedProject, issuePage.page - 1)}>
+                  onClick={() =>
+                    loadIssuePage(selectedProject, issuePage.page - 1)
+                  }
+                >
                   Précédente
                 </button>
-                <span>Page {issuePage.page} sur {issuePage.totalPages}</span>
-                <button className="secondary" type="button"
+                <span>
+                  Page {issuePage.page} sur {issuePage.totalPages}
+                </span>
+                <button
+                  className="secondary"
+                  type="button"
                   disabled={busy || issuePage.page >= issuePage.totalPages}
-                  onClick={() => loadIssuePage(selectedProject, issuePage.page + 1)}>
+                  onClick={() =>
+                    loadIssuePage(selectedProject, issuePage.page + 1)
+                  }
+                >
                   Suivante
                 </button>
               </nav>
@@ -263,9 +359,51 @@ function App() {
           <>
             <div className="content-heading">
               <h1>Projets</h1>
-              <span>{projects.length} projet{projects.length === 1 ? "" : "s"}</span>
+              <div className="project-heading-actions">
+                <span>
+                  {projects.length} projet{projects.length === 1 ? "" : "s"}
+                </span>
+                <button
+                  className={showProjectForm ? "secondary" : undefined}
+                  type="button"
+                  onClick={toggleProjectForm}
+                  disabled={busy}
+                >
+                  {showProjectForm ? "Annuler" : "Nouveau projet"}
+                </button>
+              </div>
             </div>
-            {error && <p className="error" role="alert">{error}</p>}
+            {error && (
+              <p className="error" role="alert">
+                {error}
+              </p>
+            )}
+            {showProjectForm && (
+              <form className="project-form" onSubmit={handleCreateProject}>
+                <h2>Nouveau projet</h2>
+                <label htmlFor="project-name">Nom du projet</label>
+                <input
+                  id="project-name"
+                  required
+                  maxLength={100}
+                  value={projectName}
+                  onChange={(event) => setProjectName(event.target.value)}
+                />
+                <label htmlFor="project-description">Description</label>
+                <textarea
+                  id="project-description"
+                  rows={3}
+                  maxLength={500}
+                  value={projectDescription}
+                  onChange={(event) =>
+                    setProjectDescription(event.target.value)
+                  }
+                />
+                <button type="submit" disabled={busy}>
+                  {busy ? "Création..." : "Créer le projet"}
+                </button>
+              </form>
+            )}
             {projects.length === 0 ? (
               <p className="empty">Aucun projet à afficher.</p>
             ) : (
@@ -274,8 +412,12 @@ function App() {
                   <li className="project-row" key={project.id}>
                     <div>
                       <h2>
-                        <button className="project-link" type="button"
-                          disabled={busy} onClick={() => openProject(project)}>
+                        <button
+                          className="project-link"
+                          type="button"
+                          disabled={busy}
+                          onClick={() => openProject(project)}
+                        >
                           {project.name}
                         </button>
                       </h2>

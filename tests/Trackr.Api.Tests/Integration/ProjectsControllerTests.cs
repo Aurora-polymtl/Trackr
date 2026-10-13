@@ -753,6 +753,41 @@ public class ProjectsControllerTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task CreateProject_ReturnsCreatedAndIsAccessibleOnlyToOwner()
+    {
+        await using var factory = new TrackrApiFactory();
+        var ownerClient = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(
+            ownerClient, "new-project-owner@trackr.com");
+
+        var response = await ownerClient.PostAsJsonAsync(
+            "/api/projects",
+            new CreateProjectRequest
+            {
+                Name = "Nouveau projet",
+                Description = "Description"
+            });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.NotNull(response.Headers.Location);
+
+        var created = await response.Content.ReadFromJsonAsync<ProjectResponse>(JsonOptions);
+        Assert.NotNull(created);
+        Assert.Equal("Nouveau projet", created.Name);
+        Assert.True(created.IsOwner);
+
+        var ownerLookup = await ownerClient.GetAsync($"/api/projects/{created.Id}");
+        Assert.Equal(HttpStatusCode.OK, ownerLookup.StatusCode);
+
+        var otherClient = factory.CreateClient();
+        await AuthenticationHelper.AuthenticateAsync(
+            otherClient, "new-project-other@trackr.com");
+
+        var otherLookup = await otherClient.GetAsync($"/api/projects/{created.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, otherLookup.StatusCode);
+    }
+
     private readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,

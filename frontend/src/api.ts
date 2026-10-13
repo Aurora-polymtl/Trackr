@@ -114,6 +114,17 @@ export async function signUp(email: string, password: string): Promise<RegisterR
     if (!response.ok) {
         throw new Error('Inscription impossible pour le moment. Veuillez réessayer plus tard.') 
     }
-    
+
     return response.json() as Promise<RegisterResponse>
+}
+
+export function createProject(token: string, name: string, description: string) {
+    return request<Project>('/api/projects', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({name, description}),
+    }, 'Session expirée. Veuillez vous reconnecter.')
 }
