@@ -12,10 +12,11 @@ The frontend currently supports:
 - Project creation and a list of accessible projects
 - Viewing a project's issues with status, priority, and pagination
 - Refreshing the current list and signing out
+- Creating unassigned issues in owned projects
 
 Registration creates an account but does not sign the user in automatically. The frontend keeps the JWT in React state, so reloading the page currently requires signing in again.
 
-Issue creation and editing, project membership management, and advanced issue filters are available through the API but are not yet exposed in the React interface.
+Issue editing, assignment, project membership management, and advanced issue filters are available through the API but are not yet exposed in the React interface.
 
 ### REST API
 

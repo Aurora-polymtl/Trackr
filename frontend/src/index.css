@@ -243,11 +243,13 @@ h1 {
   color: #084f4a;
 }
 
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
-textarea:focus-visible {
+textarea:focus-visible,
+select:focus-visible {
   outline: 2px solid #0b6962;
   outline-offset: 2px;
 }
@@ -259,7 +261,7 @@ textarea:focus-visible {
   flex-wrap: wrap;
 }
 
-.project-form {
+.editor-form {
   display: grid;
   gap: 10px;
   max-width: 600px;
@@ -268,29 +270,30 @@ textarea:focus-visible {
   border-bottom: 1px solid #d9e1e1;
 }
 
-.project-form h2 {
+.editor-form h2 {
   margin: 0 0 6px;
   font-size: 18px;
 }
 
-.project-form label {
+.editor-form label {
   font-size: 14px;
   font-weight: 600;
 }
 
-.project-form input,
-.project-form textarea {
+.editor-form input,
+.editor-form textarea,
+.editor-form select {
   width: 100%;
   padding: 10px;
   border: 1px solid #abb9ba;
   border-radius: 4px;
 }
 
-.project-form textarea {
+.editor-form textarea {
   resize: vertical;
 }
 
-.project-form button {
+.editor-form button {
   justify-self: start;
 }
 

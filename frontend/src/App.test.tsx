@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  within,
+  fireEvent,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 
@@ -331,4 +337,108 @@ it("refuse un nom composé uniquement d’espaces sans appeler l’API", async (
     "Le nom du projet est obligatoire.",
   );
   expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+it("crée une issue et recharge la première page du projet", async () => {
+  const emptyPage = {
+    items: [],
+    page: 1,
+    pageSize: 10,
+    totalCount: 0,
+    totalPages: 0,
+  };
+  const createdIssue = {
+    id: 7,
+    title: "Préparer la démo",
+    description: "Vérifier le parcours",
+    status: "Backlog",
+    priority: "High",
+    dueDate: "2026-11-15",
+    createdAt: "2026-10-14T12:00:00Z",
+    updatedAt: "2026-10-14T12:00:00Z",
+    projectId: 1,
+    assigneeId: null,
+  };
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse(session))
+    .mockResolvedValueOnce(jsonResponse([project]))
+    .mockResolvedValueOnce(jsonResponse(emptyPage))
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => createdIssue,
+    })
+    .mockResolvedValueOnce(
+      jsonResponse({
+        ...emptyPage,
+        items: [createdIssue],
+        totalCount: 1,
+        totalPages: 1,
+      }),
+    );
+  vi.stubGlobal("fetch", fetchMock);
+
+  const user = await submitLogin();
+  await screen.findByText("Project Alpha");
+  await user.click(screen.getByRole("button", { name: "Project Alpha" }));
+  await screen.findByText("Aucune issue pour ce projet.");
+
+  await user.click(screen.getByRole("button", { name: "Nouvelle issue" }));
+  await user.type(screen.getByLabelText("Titre"), "Préparer la démo");
+  await user.type(screen.getByLabelText("Description"), "Vérifier le parcours");
+  await user.selectOptions(screen.getByLabelText("Priorité"), "High");
+  fireEvent.change(screen.getByLabelText("Échéance"), {
+    target: { value: "2026-11-15" },
+  });
+  await user.click(screen.getByRole("button", { name: "Créer l'issue" }));
+
+  expect(
+    await screen.findByRole("heading", {
+      name: "Préparer la démo",
+    }),
+  ).not.toBeNull();
+  expect(screen.getByText("Échéance : 2026-11-15")).not.toBeNull();
+  expect(fetchMock).toHaveBeenNthCalledWith(4, "/api/projects/1/issues", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer test-token",
+    },
+    body: JSON.stringify({
+      title: "Préparer la démo",
+      description: "Vérifier le parcours",
+      priority: "High",
+      dueDate: "2026-11-15",
+    }),
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    5,
+    "/api/projects/1/issues?page=1",
+    { headers: { Authorization: "Bearer test-token" } },
+  );
+});
+
+it("ne propose pas la création d'issue à un membre", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse(session))
+    .mockResolvedValueOnce(jsonResponse([{ ...project, isOwner: false }]))
+    .mockResolvedValueOnce(
+      jsonResponse({
+        items: [],
+        page: 1,
+        pageSize: 10,
+        totalCount: 0,
+        totalPages: 0,
+      }),
+    );
+  vi.stubGlobal("fetch", fetchMock);
+
+  const user = await submitLogin();
+  await screen.findByText("Project Alpha");
+  await user.click(screen.getByRole("button", { name: "Project Alpha" }));
+  await screen.findByText("Aucune issue pour ce projet.");
+
+  expect(screen.queryByRole("button", { name: "Nouvelle issue" })).toBeNull();
 });

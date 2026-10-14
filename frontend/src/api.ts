@@ -128,3 +128,21 @@ export function createProject(token: string, name: string, description: string) 
         body: JSON.stringify({name, description}),
     }, 'Session expirée. Veuillez vous reconnecter.')
 }
+
+export type CreateIssueInput = {
+    title: string
+    description: string
+    priority: Issue['priority']
+    dueDate: string | null
+}
+
+export function createIssue(token: string, projectId: number, input: CreateIssueInput) {
+    return request<Issue>(`/api/projects/${projectId}/issues`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(input),
+    }, 'Session expirée. Veuillez vous reconnecter.')
+}
