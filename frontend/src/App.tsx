@@ -4,6 +4,7 @@ import {
   getProjects,
   createProject,
   createIssue,
+  updateIssueStatus,
   type CreateIssueInput,
   type Issue,
   type PagedResponse,
@@ -147,6 +148,46 @@ function App() {
     }
   }
 
+  async function handleUpdateIssueStatus(
+    issue: Issue,
+    status: Issue["status"],
+  ) {
+    if (
+      !session ||
+      !selectedProject ||
+      busy ||
+      (!selectedProject.isOwner && issue.assigneeId !== session.userId) ||
+      status === issue.status
+    ) {
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    try {
+      await updateIssueStatus(
+        session.accessToken,
+        selectedProject.id,
+        issue.id,
+        status,
+      );
+      setIssuePage((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) =>
+                item.id === issue.id ? { ...item, status } : item,
+              ),
+            }
+          : current,
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Erreur inattendue.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function openProject(project: Project) {
     setShowIssueForm(false);
     setShowProjectForm(false);
@@ -265,10 +306,37 @@ function App() {
                         <p>{issue.description || "Aucune description"}</p>
                         {issue.dueDate && <p>Échéance : {issue.dueDate}</p>}
                       </div>
-                      <span className="role">
-                        {statusLabels[issue.status]} -{" "}
-                        {priorityLabels[issue.priority]}
-                      </span>
+                      <div className="issue-meta">
+                        {selectedProject.isOwner ||
+                        issue.assigneeId === session.userId ? (
+                          <select
+                            aria-label={`Statut de ${issue.title}`}
+                            value={issue.status}
+                            disabled={busy}
+                            onChange={(event) =>
+                              handleUpdateIssueStatus(
+                                issue,
+                                event.target.value as Issue["status"],
+                              )
+                            }
+                          >
+                            <option value="Backlog">
+                              {statusLabels.Backlog}
+                            </option>
+                            <option value="Todo">{statusLabels.Todo}</option>
+                            <option value="InProgress">
+                              {statusLabels.InProgress}
+                            </option>
+                            <option value="Review">
+                              {statusLabels.Review}
+                            </option>
+                            <option value="Done">{statusLabels.Done}</option>
+                          </select>
+                        ) : (
+                          <span>{statusLabels[issue.status]}</span>
+                        )}
+                        <span>{priorityLabels[issue.priority]}</span>
+                      </div>
                     </li>
                   ))}
                 </ul>

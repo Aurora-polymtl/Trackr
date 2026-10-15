@@ -13,6 +13,7 @@ The frontend currently supports:
 - Viewing a project's issues with status, priority, and pagination
 - Refreshing the current list and signing out
 - Creating unassigned issues in owned projects
+- Changing issue status as a project owner or assigned member
 
 Registration creates an account but does not sign the user in automatically. The frontend keeps the JWT in React state, so reloading the page currently requires signing in again.
 
@@ -199,7 +200,7 @@ Vitest and React Testing Library test the UI with simulated network responses. T
 
 ## Next Steps
 
-- Add issue creation and editing to the React interface
+- Add editing to the React interface
 - Expose more of the API's filters and membership workflows in React
 - Improve session handling and error feedback
 - Add PostgreSQL-backed integration tests for relational behavior

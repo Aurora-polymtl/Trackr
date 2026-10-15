@@ -13,7 +13,7 @@ export type Project = {
     isOwner: boolean
 }
 
-async function request<T>(url: string, options: RequestInit, unauthorizedMessage: string): Promise<T> {
+async function sendRequest(url: string, options: RequestInit, unauthorizedMessage: string): Promise<Response> {
     let response: Response
     try {
         response = await fetch(url, options)
@@ -27,6 +27,11 @@ async function request<T>(url: string, options: RequestInit, unauthorizedMessage
     if (!response.ok) {
         throw new Error('La requête a échoué.')
     }
+    return response
+}
+
+async function request<T>(url: string, options: RequestInit, unauthorizedMessage: string): Promise<T> {
+    const response = await sendRequest(url, options, unauthorizedMessage)
     return response.json() as Promise<T>
 }
 
@@ -145,4 +150,24 @@ export function createIssue(token: string, projectId: number, input: CreateIssue
         },
         body: JSON.stringify(input),
     }, 'Session expirée. Veuillez vous reconnecter.')
+}
+
+export async function updateIssueStatus(
+    token: string,
+    projectId: number,
+    issueId: number,
+    status: Issue['status'],
+): Promise<void> {
+    await sendRequest(
+        `/api/projects/${projectId}/issues/${issueId}/status`,
+        {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status }),
+        },
+        'Session expirée. Veuillez vous reconnecter.',
+    )
 }

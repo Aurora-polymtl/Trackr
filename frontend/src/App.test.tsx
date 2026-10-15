@@ -7,6 +7,7 @@ import {
   screen,
   within,
   fireEvent,
+  waitFor,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
@@ -489,4 +490,105 @@ it("signale une issue créée lorsque le rechargement échoue", async () => {
   );
   expect(screen.queryByRole("button", { name: "Créer l'issue" })).toBeNull();
   expect(fetchMock).toHaveBeenCalledTimes(5);
+});
+
+it("change le statut et conserve l'ancien si la requête suivante échoue", async () => {
+  const issue = {
+    id: 7,
+    title: "Première issue",
+    description: "",
+    status: "Todo",
+    priority: "High",
+    dueDate: null,
+    assigneeId: null,
+  };
+  const page = {
+    items: [issue],
+    page: 1,
+    pageSize: 10,
+    totalCount: 1,
+    totalPages: 1,
+  };
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse(session))
+    .mockResolvedValueOnce(jsonResponse([project]))
+    .mockResolvedValueOnce(jsonResponse(page))
+    .mockResolvedValueOnce({ ok: true, status: 204 })
+    .mockResolvedValueOnce({ ok: false, status: 500 });
+  vi.stubGlobal("fetch", fetchMock);
+
+  const user = await submitLogin();
+  await screen.findByText("Project Alpha");
+  await user.click(screen.getByRole("button", { name: "Project Alpha" }));
+  const status = await screen.findByRole("combobox", {
+    name: "Statut de Première issue",
+  });
+
+  await user.selectOptions(status, "InProgress");
+  await waitFor(() => expect(status).toHaveProperty("value", "InProgress"));
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    4,
+    "/api/projects/1/issues/7/status",
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer test-token",
+      },
+      body: JSON.stringify({ status: "InProgress" }),
+    },
+  );
+
+  await user.selectOptions(status, "Done");
+  expect(await screen.findByRole("alert")).toHaveProperty(
+    "textContent",
+    "La requête a échoué.",
+  );
+  expect(status).toHaveProperty("value", "InProgress");
+});
+
+it("réserve le changement de statut au membre assigné", async () => {
+  const assigned = {
+    id: 7,
+    title: "À moi",
+    description: "",
+    status: "Todo",
+    priority: "Low",
+    dueDate: null,
+    assigneeId: session.userId,
+  };
+  const other = {
+    ...assigned,
+    id: 8,
+    title: "À un autre",
+    assigneeId: "user-2",
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(session))
+      .mockResolvedValueOnce(jsonResponse([{ ...project, isOwner: false }]))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [assigned, other],
+          page: 1,
+          pageSize: 10,
+          totalCount: 2,
+          totalPages: 1,
+        }),
+      ),
+  );
+
+  const user = await submitLogin();
+  await screen.findByText("Project Alpha");
+  await user.click(screen.getByRole("button", { name: "Project Alpha" }));
+
+  expect(
+    await screen.findByRole("combobox", { name: "Statut de À moi" }),
+  ).not.toBeNull();
+  expect(
+    screen.queryByRole("combobox", { name: "Statut de À un autre" }),
+  ).toBeNull();
 });
