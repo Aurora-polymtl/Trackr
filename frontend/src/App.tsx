@@ -10,6 +10,7 @@ import {
   type Session,
 } from "./api";
 import { AuthScreen } from "./components/AuthScreen";
+import { ProjectForm } from "./components/ProjectForm";
 
 const statusLabels: Record<Issue["status"], string> = {
   Backlog: "En attente",
@@ -34,8 +35,6 @@ function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [issuePage, setIssuePage] = useState<PagedResponse<Issue> | null>(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
-  const [projectName, setProjectName] = useState("");
-  const [projectDescription, setProjectDescription] = useState("");
   const [showIssueForm, setShowIssueForm] = useState(false);
   const [issueTitle, setIssueTitle] = useState("");
   const [issueDescription, setIssueDescription] = useState("");
@@ -49,18 +48,15 @@ function App() {
   }
 
   function toggleProjectForm() {
-    setShowProjectForm(!showProjectForm);
-    setProjectName("");
-    setProjectDescription("");
+    setShowProjectForm((current) => !current);
     setError("");
   }
 
-  async function handleCreateProject(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleCreateProject(name: string, description: string) {
     if (!session) return;
 
-    const name = projectName.trim();
-    if (!name) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       setError("Le nom du projet est obligatoire.");
       return;
     }
@@ -70,13 +66,11 @@ function App() {
     try {
       const created = await createProject(
         session.accessToken,
-        name,
-        projectDescription.trim(),
+        trimmedName,
+        description.trim(),
       );
       setProjects((current) => [...current, created]);
       setShowProjectForm(false);
-      setProjectName("");
-      setProjectDescription("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Erreur inattendue.");
     } finally {
@@ -169,8 +163,6 @@ function App() {
   async function openProject(project: Project) {
     resetIssueForm();
     setShowProjectForm(false);
-    setProjectName("");
-    setProjectDescription("");
     setSelectedProject(project);
     setIssuePage(null);
     await loadIssuePage(project, 1);
@@ -190,8 +182,6 @@ function App() {
     setSelectedProject(null);
     setIssuePage(null);
     setShowProjectForm(false);
-    setProjectName("");
-    setProjectDescription("");
     setError("");
   }
 
@@ -385,30 +375,7 @@ function App() {
               </p>
             )}
             {showProjectForm && (
-              <form className="editor-form" onSubmit={handleCreateProject}>
-                <h2>Nouveau projet</h2>
-                <label htmlFor="project-name">Nom du projet</label>
-                <input
-                  id="project-name"
-                  required
-                  maxLength={100}
-                  value={projectName}
-                  onChange={(event) => setProjectName(event.target.value)}
-                />
-                <label htmlFor="project-description">Description</label>
-                <textarea
-                  id="project-description"
-                  rows={3}
-                  maxLength={500}
-                  value={projectDescription}
-                  onChange={(event) =>
-                    setProjectDescription(event.target.value)
-                  }
-                />
-                <button type="submit" disabled={busy}>
-                  {busy ? "Création..." : "Créer le projet"}
-                </button>
-              </form>
+              <ProjectForm busy={busy} onCreate={handleCreateProject} />
             )}
             {projects.length === 0 ? (
               <p className="empty">Aucun projet à afficher.</p>

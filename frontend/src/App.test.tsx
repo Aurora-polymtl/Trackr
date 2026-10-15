@@ -340,6 +340,12 @@ it("refuse un nom composé uniquement d’espaces sans appeler l’API", async (
     "Le nom du projet est obligatoire.",
   );
   expect(fetchMock).toHaveBeenCalledTimes(2);
+
+  await user.click(screen.getByRole("button", { name: "Annuler" }));
+  await user.click(screen.getByRole("button", { name: "Nouveau projet" }));
+
+  expect(screen.getByLabelText("Nom du projet")).toHaveProperty("value", "");
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("crée une issue et recharge la première page du projet", async () => {
