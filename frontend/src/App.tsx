@@ -1,9 +1,10 @@
-import { useState, type SubmitEvent } from "react";
+import { useState } from "react";
 import {
   getProjectIssues,
   getProjects,
   createProject,
   createIssue,
+  type CreateIssueInput,
   type Issue,
   type PagedResponse,
   type Project,
@@ -11,6 +12,7 @@ import {
 } from "./api";
 import { AuthScreen } from "./components/AuthScreen";
 import { ProjectForm } from "./components/ProjectForm";
+import { IssueForm } from "./components/IssueForm";
 
 const statusLabels: Record<Issue["status"], string> = {
   Backlog: "En attente",
@@ -36,13 +38,8 @@ function App() {
   const [issuePage, setIssuePage] = useState<PagedResponse<Issue> | null>(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [showIssueForm, setShowIssueForm] = useState(false);
-  const [issueTitle, setIssueTitle] = useState("");
-  const [issueDescription, setIssueDescription] = useState("");
-  const [issuePriority, setIssuePriority] =
-    useState<Issue["priority"]>("Medium");
-  const [issueDuDate, setIssueDueDate] = useState("");
 
-  function handleAuthenticated(nextSession: Session, nextProjects: Project[]){
+  function handleAuthenticated(nextSession: Session, nextProjects: Project[]) {
     setSession(nextSession);
     setProjects(nextProjects);
   }
@@ -107,25 +104,15 @@ function App() {
     }
   }
 
-  function resetIssueForm() {
-    setShowIssueForm(false);
-    setIssueTitle("");
-    setIssueDescription("");
-    setIssuePriority("Medium");
-    setIssueDueDate("");
-  }
-
   function toggleIssueForm() {
-    if (showIssueForm) resetIssueForm();
-    else setShowIssueForm(true);
+    setShowIssueForm((current) => !current);
     setError("");
   }
 
-  async function handleCreateIssue(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleCreateIssue(input: CreateIssueInput) {
     if (!session || !selectedProject || !selectedProject.isOwner) return;
 
-    const title = issueTitle.trim();
+    const title = input.title.trim();
     if (!title) {
       setError("Le titre de l'issue est obligatoire.");
       return;
@@ -138,13 +125,13 @@ function App() {
     try {
       await createIssue(session.accessToken, selectedProject.id, {
         title,
-        description: issueDescription.trim(),
-        priority: issuePriority,
-        dueDate: issueDuDate || null,
+        description: input.description.trim(),
+        priority: input.priority,
+        dueDate: input.dueDate,
       });
 
       created = true;
-      resetIssueForm();
+      setShowIssueForm(false);
       setIssuePage(null);
       setIssuePage(
         await getProjectIssues(session.accessToken, selectedProject.id, 1),
@@ -161,7 +148,7 @@ function App() {
   }
 
   async function openProject(project: Project) {
-    resetIssueForm();
+    setShowIssueForm(false);
     setShowProjectForm(false);
     setSelectedProject(project);
     setIssuePage(null);
@@ -169,14 +156,14 @@ function App() {
   }
 
   function closeProject() {
-    resetIssueForm();
+    setShowIssueForm(false);
     setSelectedProject(null);
     setIssuePage(null);
     setError("");
   }
 
   function logout() {
-    resetIssueForm();
+    setShowIssueForm(false);
     setSession(null);
     setProjects([]);
     setSelectedProject(null);
@@ -255,48 +242,11 @@ function App() {
               </p>
             )}
             {selectedProject.isOwner && showIssueForm && (
-              <form className="editor-form" onSubmit={handleCreateIssue}>
-                <h2>Nouvelle issue</h2>
-                <label htmlFor="issue-title">Titre</label>
-                <input
-                  id="issue-title"
-                  required
-                  maxLength={150}
-                  value={issueTitle}
-                  onChange={(event) => setIssueTitle(event.target.value)}
-                />
-                <label htmlFor="issue-description">Description</label>
-                <textarea
-                  id="issue-description"
-                  rows={3}
-                  maxLength={2000}
-                  value={issueDescription}
-                  onChange={(event) => setIssueDescription(event.target.value)}
-                />
-                <label htmlFor="issue-priority">Priorité</label>
-                <select
-                  id="issue-priority"
-                  value={issuePriority}
-                  onChange={(event) =>
-                    setIssuePriority(event.target.value as Issue["priority"])
-                  }
-                >
-                  <option value="Low">{priorityLabels.Low}</option>
-                  <option value="Medium">{priorityLabels.Medium}</option>
-                  <option value="High">{priorityLabels.High}</option>
-                  <option value="Critical">{priorityLabels.Critical}</option>
-                </select>
-                <label htmlFor="issue-due-date">Échéance</label>
-                <input
-                  id="issue-due-date"
-                  type="date"
-                  value={issueDuDate}
-                  onChange={(event) => setIssueDueDate(event.target.value)}
-                />
-                <button type="submit" disabled={busy}>
-                  {busy ? "Création..." : "Créer l'issue"}
-                </button>
-              </form>
+              <IssueForm
+                busy={busy}
+                priorityLabels={priorityLabels}
+                onCreate={handleCreateIssue}
+              />
             )}
             {busy && (
               <p className="empty" role="status">

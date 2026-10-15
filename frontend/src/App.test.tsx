@@ -426,6 +426,12 @@ it("crée une issue et recharge la première page du projet", async () => {
     "/api/projects/1/issues?page=1",
     { headers: { Authorization: "Bearer test-token" } },
   );
+
+  await user.click(screen.getByRole("button", { name: "Nouvelle issue" }));
+  expect(screen.getByLabelText("Titre")).toHaveProperty("value", "");
+  expect(screen.getByLabelText("Description")).toHaveProperty("value", "");
+  expect(screen.getByLabelText("Priorité")).toHaveProperty("value", "Medium");
+  expect(screen.getByLabelText("Échéance")).toHaveProperty("value", "");
 });
 
 it("ne propose pas la création d'issue à un membre", async () => {
@@ -450,4 +456,37 @@ it("ne propose pas la création d'issue à un membre", async () => {
   await screen.findByText("Aucune issue pour ce projet.");
 
   expect(screen.queryByRole("button", { name: "Nouvelle issue" })).toBeNull();
+});
+
+it("signale une issue créée lorsque le rechargement échoue", async () => {
+  const emptyPage = {
+    items: [],
+    page: 1,
+    pageSize: 10,
+    totalCount: 0,
+    totalPages: 0,
+  };
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse(session))
+    .mockResolvedValueOnce(jsonResponse([project]))
+    .mockResolvedValueOnce(jsonResponse(emptyPage))
+    .mockResolvedValueOnce(jsonResponse({ id: 7 }))
+    .mockResolvedValueOnce({ ok: false, status: 500 });
+  vi.stubGlobal("fetch", fetchMock);
+
+  const user = await submitLogin();
+  await screen.findByText("Project Alpha");
+  await user.click(screen.getByRole("button", { name: "Project Alpha" }));
+  await screen.findByText("Aucune issue pour ce projet.");
+  await user.click(screen.getByRole("button", { name: "Nouvelle issue" }));
+  await user.type(screen.getByLabelText("Titre"), "Nouvelle issue");
+  await user.click(screen.getByRole("button", { name: "Créer l'issue" }));
+
+  expect(await screen.findByRole("alert")).toHaveProperty(
+    "textContent",
+    "Issue créée, mais la liste n'a pas pu être actualisée.",
+  );
+  expect(screen.queryByRole("button", { name: "Créer l'issue" })).toBeNull();
+  expect(fetchMock).toHaveBeenCalledTimes(5);
 });
