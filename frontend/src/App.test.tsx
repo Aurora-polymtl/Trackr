@@ -109,6 +109,9 @@ it("actualise les projets puis revient à la connexion après la déconnexion", 
   await user.click(screen.getByRole("button", { name: "Déconnexion" }));
   expect(screen.getByRole("heading", { name: "Connexion" })).not.toBeNull();
   expect(screen.queryByText("Project Beta")).toBeNull();
+
+  expect(screen.getByLabelText("Adresse courriel")).toHaveProperty("value", "");
+  expect(screen.getByLabelText("Mot de passe")).toHaveProperty("value", "");
 });
 
 it("ouvre un projet et parcourt ses pages d’issues", async () => {
