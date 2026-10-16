@@ -592,3 +592,77 @@ it("réserve le changement de statut au membre assigné", async () => {
     screen.queryByRole("combobox", { name: "Statut de À un autre" }),
   ).toBeNull();
 });
+
+it("conserve la recherche pendant la pagination puis l'efface", async () => {
+  const emptyPage = {
+    items: [],
+    page: 1,
+    pageSize: 10,
+    totalCount: 0,
+    totalPages: 0,
+  };
+  const makeIssue = (id: number) => ({
+    id,
+    title: `API & UI ${id}`,
+    description: "",
+    status: "Todo",
+    priority: "Low",
+    dueDate: null,
+    assigneeId: null,
+  });
+  const firstPage = {
+    items: Array.from({ length: 10 }, (_, index) => makeIssue(index + 1)),
+    page: 1,
+    pageSize: 10,
+    totalCount: 11,
+    totalPages: 2,
+  };
+  const secondPage = {
+    ...firstPage,
+    items: [makeIssue(11)],
+    page: 2,
+  };
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse(session))
+    .mockResolvedValueOnce(jsonResponse([project]))
+    .mockResolvedValueOnce(jsonResponse(emptyPage))
+    .mockResolvedValueOnce(jsonResponse(firstPage))
+    .mockResolvedValueOnce(jsonResponse(secondPage))
+    .mockResolvedValueOnce(jsonResponse(emptyPage));
+  vi.stubGlobal("fetch", fetchMock);
+
+  const user = await submitLogin();
+  await screen.findByText("Project Alpha");
+  await user.click(screen.getByRole("button", { name: "Project Alpha" }));
+
+  await user.type(
+    screen.getByRole("searchbox", { name: "Rechercher une issue" }),
+    "  API & UI  ",
+  );
+  await user.click(screen.getByRole("button", { name: "Rechercher" }));
+  expect(await screen.findByText("API & UI 1")).not.toBeNull();
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    4,
+    "/api/projects/1/issues?page=1&search=API+%26+UI",
+    { headers: { Authorization: "Bearer test-token" } },
+  );
+
+  await user.click(screen.getByRole("button", { name: "Suivante" }));
+  expect(await screen.findByText("API & UI 11")).not.toBeNull();
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    5,
+    "/api/projects/1/issues?page=2&search=API+%26+UI",
+    { headers: { Authorization: "Bearer test-token" } },
+  );
+
+  await user.click(screen.getByRole("button", { name: "Effacer" }));
+  expect(
+    await screen.findByText("Aucune issue pour ce projet."),
+  ).not.toBeNull();
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    6,
+    "/api/projects/1/issues?page=1",
+    { headers: { Authorization: "Bearer test-token" } },
+  );
+});

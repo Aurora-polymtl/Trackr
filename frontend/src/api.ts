@@ -74,9 +74,14 @@ export type PagedResponse<T> = {
     totalPages: number
 }
 
-export function getProjectIssues(token: string, projectId: number, page: number) {
+export function getProjectIssues(token: string, projectId: number, page: number, search = '') {
+    const query = new URLSearchParams({ page: String(page) })
+    if (search.trim()) {
+        query.set('search', search.trim())
+    }
+    
     return request<PagedResponse<Issue>>(
-        `/api/projects/${projectId}/issues?page=${page}`,
+        `/api/projects/${projectId}/issues?${query.toString()}`,
         { headers: { 'Authorization': `Bearer ${token}` } },
         'Session expirée. Veuillez vous reconnecter.',
     )

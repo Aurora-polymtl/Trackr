@@ -328,3 +328,29 @@ select:focus-visible {
     justify-content: flex-start;
   }
 }
+
+.issue-search {
+  max-width: 680px;
+  margin-top: 24px;
+}
+
+.issue-search label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.issue-search-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.issue-search-controls input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #abb9ba;
+  border-radius: 4px;
+}

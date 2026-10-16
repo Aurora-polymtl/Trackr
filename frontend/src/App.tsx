@@ -14,6 +14,7 @@ import {
 import { AuthScreen } from "./components/AuthScreen";
 import { ProjectForm } from "./components/ProjectForm";
 import { IssueForm } from "./components/IssueForm";
+import { IssueSearchForm } from "./components/IssueSearchForm";
 
 const statusLabels: Record<Issue["status"], string> = {
   Backlog: "En attente",
@@ -39,6 +40,7 @@ function App() {
   const [issuePage, setIssuePage] = useState<PagedResponse<Issue> | null>(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [showIssueForm, setShowIssueForm] = useState(false);
+  const [issueSearch, setIssueSearch] = useState("");
 
   function handleAuthenticated(nextSession: Session, nextProjects: Project[]) {
     setSession(nextSession);
@@ -90,19 +92,32 @@ function App() {
     }
   }
 
-  async function loadIssuePage(project: Project, page: number) {
+  async function loadIssuePage(
+    project: Project,
+    page: number,
+    search = issueSearch,
+  ) {
     if (!session) return;
     setBusy(true);
     setError("");
     try {
       setIssuePage(
-        await getProjectIssues(session.accessToken, project.id, page),
+        await getProjectIssues(session.accessToken, project.id, page, search),
       );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Erreur inattendue.");
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleSearchIssues(search: string) {
+    if (!selectedProject) return;
+
+    const term = search.trim();
+    setIssueSearch(term);
+    setIssuePage(null);
+    await loadIssuePage(selectedProject, 1, term);
   }
 
   function toggleIssueForm() {
@@ -135,7 +150,12 @@ function App() {
       setShowIssueForm(false);
       setIssuePage(null);
       setIssuePage(
-        await getProjectIssues(session.accessToken, selectedProject.id, 1),
+        await getProjectIssues(
+          session.accessToken,
+          selectedProject.id,
+          1,
+          issueSearch,
+        ),
       );
     } catch (cause) {
       if (created) {
@@ -193,13 +213,15 @@ function App() {
     setShowProjectForm(false);
     setSelectedProject(project);
     setIssuePage(null);
-    await loadIssuePage(project, 1);
+    setIssueSearch("");
+    await loadIssuePage(project, 1, "");
   }
 
   function closeProject() {
     setShowIssueForm(false);
     setSelectedProject(null);
     setIssuePage(null);
+    setIssueSearch("");
     setError("");
   }
 
@@ -209,6 +231,7 @@ function App() {
     setProjects([]);
     setSelectedProject(null);
     setIssuePage(null);
+    setIssueSearch("");
     setShowProjectForm(false);
     setError("");
   }
@@ -277,6 +300,11 @@ function App() {
                 )}
               </div>
             </div>
+            <IssueSearchForm
+              busy={busy}
+              appliedSearch={issueSearch}
+              onSearch={handleSearchIssues}
+            />
             {error && (
               <p className="error" role="alert">
                 {error}
@@ -296,7 +324,11 @@ function App() {
             )}
             {issuePage &&
               (issuePage.items.length === 0 ? (
-                <p className="empty">Aucune issue pour ce projet.</p>
+                <p className="empty">
+                  {issueSearch
+                    ? "Aucune issue pour cette recherche."
+                    : "Aucune issue pour ce projet."}
+                </p>
               ) : (
                 <ul className="project-list">
                   {issuePage.items.map((issue) => (
