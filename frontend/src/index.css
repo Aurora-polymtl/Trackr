@@ -329,28 +329,41 @@ select:focus-visible {
   }
 }
 
-.issue-search {
+.issue-filters {
   max-width: 680px;
   margin-top: 24px;
 }
 
-.issue-search label {
+.issue-filter-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr);
+  gap: 12px;
+}
+
+.issue-filter-fields label {
   display: block;
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 600;
 }
 
-.issue-search-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.issue-search-controls input {
-  flex: 1 1 220px;
-  min-width: 0;
+.issue-filter-fields input,
+.issue-filter-fields select {
+  width: 100%;
   padding: 10px;
   border: 1px solid #abb9ba;
   border-radius: 4px;
+}
+
+.issue-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+@media (max-width: 600px) {
+  .issue-filter-fields {
+    grid-template-columns: 1fr;
+  }
 }

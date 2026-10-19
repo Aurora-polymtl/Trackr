@@ -640,7 +640,7 @@ it("conserve la recherche pendant la pagination puis l'efface", async () => {
     screen.getByRole("searchbox", { name: "Rechercher une issue" }),
     "  API & UI  ",
   );
-  await user.click(screen.getByRole("button", { name: "Rechercher" }));
+  await user.click(screen.getByRole("button", { name: "Appliquer" }));
   expect(await screen.findByText("API & UI 1")).not.toBeNull();
   expect(fetchMock).toHaveBeenNthCalledWith(
     4,
@@ -653,6 +653,77 @@ it("conserve la recherche pendant la pagination puis l'efface", async () => {
   expect(fetchMock).toHaveBeenNthCalledWith(
     5,
     "/api/projects/1/issues?page=2&search=API+%26+UI",
+    { headers: { Authorization: "Bearer test-token" } },
+  );
+
+  await user.click(screen.getByRole("button", { name: "Effacer" }));
+  expect(
+    await screen.findByText("Aucune issue pour ce projet."),
+  ).not.toBeNull();
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    6,
+    "/api/projects/1/issues?page=1",
+    { headers: { Authorization: "Bearer test-token" } },
+  );
+});
+
+it("combine priorité et recherche, puis efface les critères", async () => {
+  const emptyPage = {
+    items: [],
+    page: 1,
+    pageSize: 10,
+    totalCount: 0,
+    totalPages: 0,
+  };
+  const highIssue = {
+    id: 7,
+    title: "Important",
+    description: "",
+    status: "Todo",
+    priority: "High",
+    dueDate: null,
+    assigneeId: null,
+  };
+  const filteredPage = {
+    ...emptyPage,
+    items: [highIssue],
+    totalCount: 1,
+    totalPages: 1,
+  };
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse(session))
+    .mockResolvedValueOnce(jsonResponse([project]))
+    .mockResolvedValueOnce(jsonResponse(emptyPage))
+    .mockResolvedValueOnce(jsonResponse(filteredPage))
+    .mockResolvedValueOnce(jsonResponse(emptyPage))
+    .mockResolvedValueOnce(jsonResponse(emptyPage));
+  vi.stubGlobal("fetch", fetchMock);
+
+  const user = await submitLogin();
+  await screen.findByText("Project Alpha");
+  await user.click(screen.getByRole("button", { name: "Project Alpha" }));
+
+  await user.selectOptions(screen.getByLabelText("Filtrer par priorité"), "High");
+  await user.click(screen.getByRole("button", { name: "Appliquer" }));
+  expect(await screen.findByText("Important")).not.toBeNull();
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    4,
+    "/api/projects/1/issues?page=1&priority=High",
+    { headers: { Authorization: "Bearer test-token" } },
+  );
+
+  await user.type(
+    screen.getByRole("searchbox", { name: "Rechercher une issue" }),
+    "Bug",
+  );
+  await user.click(screen.getByRole("button", { name: "Appliquer" }));
+  expect(
+    await screen.findByText("Aucune issue pour ces critères."),
+  ).not.toBeNull();
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    5,
+    "/api/projects/1/issues?page=1&search=Bug&priority=High",
     { headers: { Authorization: "Bearer test-token" } },
   );
 

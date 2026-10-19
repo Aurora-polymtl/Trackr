@@ -5,6 +5,7 @@ import {
   createProject,
   createIssue,
   updateIssueStatus,
+  type IssueFilters,
   type CreateIssueInput,
   type Issue,
   type PagedResponse,
@@ -14,7 +15,7 @@ import {
 import { AuthScreen } from "./components/AuthScreen";
 import { ProjectForm } from "./components/ProjectForm";
 import { IssueForm } from "./components/IssueForm";
-import { IssueSearchForm } from "./components/IssueSearchForm";
+import { IssueFiltersForm } from "./components/IssueFiltersForm";
 
 const statusLabels: Record<Issue["status"], string> = {
   Backlog: "En attente",
@@ -31,6 +32,8 @@ const priorityLabels: Record<Issue["priority"], string> = {
   Critical: "Critique",
 };
 
+const emptyIssueFilters: IssueFilters = { search: "", priority: "" };
+
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -40,7 +43,8 @@ function App() {
   const [issuePage, setIssuePage] = useState<PagedResponse<Issue> | null>(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [showIssueForm, setShowIssueForm] = useState(false);
-  const [issueSearch, setIssueSearch] = useState("");
+  const [issueFilters, setIssueFilters] =
+    useState<IssueFilters>(emptyIssueFilters);
 
   function handleAuthenticated(nextSession: Session, nextProjects: Project[]) {
     setSession(nextSession);
@@ -95,14 +99,14 @@ function App() {
   async function loadIssuePage(
     project: Project,
     page: number,
-    search = issueSearch,
+    filters: IssueFilters = issueFilters,
   ) {
     if (!session) return;
     setBusy(true);
     setError("");
     try {
       setIssuePage(
-        await getProjectIssues(session.accessToken, project.id, page, search),
+        await getProjectIssues(session.accessToken, project.id, page, filters),
       );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Erreur inattendue.");
@@ -111,13 +115,13 @@ function App() {
     }
   }
 
-  async function handleSearchIssues(search: string) {
-    if (!selectedProject) return;
+  async function handleApplyIssueFilters(filters: IssueFilters) {
+    if (!selectedProject || busy) return;
 
-    const term = search.trim();
-    setIssueSearch(term);
+    const nextFilters = { ...filters, search: filters.search.trim() };
+    setIssueFilters(nextFilters);
     setIssuePage(null);
-    await loadIssuePage(selectedProject, 1, term);
+    await loadIssuePage(selectedProject, 1, nextFilters);
   }
 
   function toggleIssueForm() {
@@ -154,7 +158,7 @@ function App() {
           session.accessToken,
           selectedProject.id,
           1,
-          issueSearch,
+          issueFilters,
         ),
       );
     } catch (cause) {
@@ -213,15 +217,15 @@ function App() {
     setShowProjectForm(false);
     setSelectedProject(project);
     setIssuePage(null);
-    setIssueSearch("");
-    await loadIssuePage(project, 1, "");
+    setIssueFilters(emptyIssueFilters);
+    await loadIssuePage(project, 1, emptyIssueFilters);
   }
 
   function closeProject() {
     setShowIssueForm(false);
     setSelectedProject(null);
     setIssuePage(null);
-    setIssueSearch("");
+    setIssueFilters(emptyIssueFilters);
     setError("");
   }
 
@@ -231,7 +235,7 @@ function App() {
     setProjects([]);
     setSelectedProject(null);
     setIssuePage(null);
-    setIssueSearch("");
+    setIssueFilters(emptyIssueFilters);
     setShowProjectForm(false);
     setError("");
   }
@@ -300,10 +304,11 @@ function App() {
                 )}
               </div>
             </div>
-            <IssueSearchForm
+            <IssueFiltersForm
               busy={busy}
-              appliedSearch={issueSearch}
-              onSearch={handleSearchIssues}
+              appliedFilters={issueFilters}
+              priorityLabels={priorityLabels}
+              onApply={handleApplyIssueFilters}
             />
             {error && (
               <p className="error" role="alert">
@@ -325,8 +330,8 @@ function App() {
             {issuePage &&
               (issuePage.items.length === 0 ? (
                 <p className="empty">
-                  {issueSearch
-                    ? "Aucune issue pour cette recherche."
+                  {issueFilters.search || issueFilters.priority
+                    ? "Aucune issue pour ces critères."
                     : "Aucune issue pour ce projet."}
                 </p>
               ) : (

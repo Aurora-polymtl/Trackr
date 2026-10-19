@@ -74,10 +74,14 @@ export type PagedResponse<T> = {
     totalPages: number
 }
 
-export function getProjectIssues(token: string, projectId: number, page: number, search = '') {
+export function getProjectIssues(token: string, projectId: number, page: number, filters: IssueFilters = { search: '', priority: '' }) {
     const query = new URLSearchParams({ page: String(page) })
-    if (search.trim()) {
-        query.set('search', search.trim())
+
+    if (filters.search.trim()) {
+        query.set('search', filters.search.trim())
+    }
+    if (filters.priority) {
+        query.set('priority', filters.priority)
     }
     
     return request<PagedResponse<Issue>>(
@@ -175,4 +179,9 @@ export async function updateIssueStatus(
         },
         'Session expirée. Veuillez vous reconnecter.',
     )
+}
+
+export type IssueFilters = {
+    search: string
+    priority: Issue['priority'] | ''
 }

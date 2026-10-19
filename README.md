@@ -14,6 +14,7 @@ The frontend currently supports:
 - Refreshing the current list and signing out
 - Creating unassigned issues in owned projects
 - Changing issue status as a project owner or assigned member
+- Searching and filtering project issues by priority
 
 Registration creates an account but does not sign the user in automatically. The frontend keeps the JWT in React state, so reloading the page currently requires signing in again.
 
